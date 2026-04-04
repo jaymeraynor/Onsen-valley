@@ -1,0 +1,15 @@
+body { 
+    margin: 0; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    height: 100vh; 
+    background-color: #2d3436; /* 將底色與遊戲 Canvas 邊緣統一，無縫延伸 */
+    font-family: 'Segoe UI', sans-serif; 
+    overflow: hidden; 
+    touch-action: none; 
+}
+canvas { 
+    box-shadow: 0 0 40px rgba(0,0,0,0.8); 
+    border-radius: 8px; 
+}
