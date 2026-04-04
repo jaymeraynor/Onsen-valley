@@ -12,7 +12,7 @@ let selfRef, spawnTimerEvent, nightOverlay;
 let activeShopItem = null, timeMode = 'auto', activeExpedition = null; 
 let ownedYokais = []; 
 
-let isGameLoaded = false; // [安全鎖] 防止 Race Condition 當機
+let isGameLoaded = false; 
 
 let gridSize = 250; 
 const centerGrid = Math.floor(gridSize / 2); 
@@ -40,6 +40,15 @@ let mapData = [];
 function getBuildTime(level) { let b = Math.floor(10 * Math.pow(1.8, level - 1)); return staff.foreman ? Math.floor(b*0.5) : b; } 
 function t(key) { return i18n[currentLang][key] || key; }
 
+// [共用模組] 提升為全域函式，方便所有新模組呼叫
+function showFloatingText(x, y, text, color, fontSize = '18px', isFixed = false) {
+    if (!userSettings.vfx && !isFixed) return; 
+    if (!selfRef) return;
+    let t = selfRef.add.text(x, y, text, { fontSize: fontSize, fill: color, fontStyle: 'bold', stroke: '#000', strokeThickness: 3 }).setDepth(2500).setOrigin(0.5);
+    if (isFixed) t.setScrollFactor(0); 
+    selfRef.tweens.add({ targets: t, y: y - 50, alpha: 0, duration: 2000, onComplete: () => t.destroy() });
+}
+
 const config = { type: Phaser.AUTO, width: 800, height: 600, backgroundColor: '#2d3436', scene: { preload: preload, create: create, update: update } };
 const game = new Phaser.Game(config);
 
@@ -51,7 +60,6 @@ let soundWaterfall, soundDay, soundNight;
 function preload() {
     let g = this.make.graphics({x: 0, y: 0, add: false});
     
-    // [視覺升級] Low Poly 立體倒角渲染
     function draw3DTile(key, topColor, leftColor, rightColor, isWater = false) {
         g.fillStyle(rightColor, 1); g.beginPath(); g.moveTo(32, 32); g.lineTo(64, 16); g.lineTo(64, 16+tileThickness); g.lineTo(32, 32+tileThickness); g.closePath(); g.fillPath();
         g.fillStyle(leftColor, 1); g.beginPath(); g.moveTo(32, 32); g.lineTo(0, 16); g.lineTo(0, 16+tileThickness); g.lineTo(32, 32+tileThickness); g.closePath(); g.fillPath();
@@ -75,7 +83,6 @@ function preload() {
     g.fillStyle(0x000000, 0.75); g.beginPath(); g.moveTo(32, 0); g.lineTo(64, 16); g.lineTo(32, 32); g.lineTo(0, 16); g.closePath(); g.fillPath(); g.generateTexture('fog', 64, 32); g.clear();
     draw3DTile('cliff', 0x2d3436, 0x1e272e, 0x000000);
 
-    // [視覺升級] 重塑高山：不規則的積雪與山稜線
     g.fillStyle(0x2c3e50, 1); g.beginPath(); g.moveTo(32, 90); g.lineTo(64, 74); g.lineTo(40, 20); g.lineTo(32, 0); g.closePath(); g.fillPath();
     g.fillStyle(0x34495e, 1); g.beginPath(); g.moveTo(32, 90); g.lineTo(0, 74); g.lineTo(24, 20); g.lineTo(32, 0); g.closePath(); g.fillPath();
     g.fillStyle(0xdfe6e9, 1); g.beginPath(); g.moveTo(32, 38); g.lineTo(40, 20); g.lineTo(48, 42); g.lineTo(40, 32); g.lineTo(32, 45); g.closePath(); g.fillPath();
@@ -84,18 +91,9 @@ function preload() {
     
     g.fillStyle(0xffffff, 0.4); g.fillCircle(8, 8, 8); g.generateTexture('steamTexture', 16, 16); g.clear();
 
-    // --- [天氣系統：純前端生成粒子紋理] ---
-    g.fillStyle(0xffffff, 0.8);
-    g.fillCircle(4, 4, 4);
-    g.generateTexture('snowParticle', 8, 8);
-    g.clear();
+    g.fillStyle(0xffffff, 0.8); g.fillCircle(4, 4, 4); g.generateTexture('snowParticle', 8, 8); g.clear();
+    g.fillStyle(0xff9ff3, 0.9); g.fillEllipse(6, 4, 12, 6); g.generateTexture('sakuraParticle', 12, 8); g.clear();
 
-    g.fillStyle(0xff9ff3, 0.9); 
-    g.fillEllipse(6, 4, 12, 6);
-    g.generateTexture('sakuraParticle', 12, 8);
-    g.clear();
-
-    // --- 純前端：Q版麻糬妖怪生成器 ---
     function drawQYokai(key, colors) {
         g.fillStyle(0x000000, 0.15);
         g.fillEllipse(16, 28, 24, 6);
@@ -127,13 +125,11 @@ function create() {
     let isBuildMode = true;
 
     if (window.location.protocol !== 'file:') {
-        // [音效優化] 白噪音低音量
         soundWaterfall = this.sound.add('bgm_waterfall', { loop: true, volume: 0.1 });
         soundDay = this.sound.add('bgm_day', { loop: true, volume: 0.15 });
         soundNight = this.sound.add('bgm_night', { loop: true, volume: 0 }); 
     }
 
-    // [視覺升級] 日式 Cozy 載入畫面
     let loadOverlay = this.add.rectangle(400, 300, 800, 600, 0xf5e6ca).setDepth(99999).setScrollFactor(0).setInteractive();
     let loadSpinner = this.add.text(400, 240, '♨️', { fontSize: '64px', fill: '#c0392b' }).setOrigin(0.5).setDepth(100000).setScrollFactor(0);
     let loadText = this.add.text(400, 320, '正在連線至溫泉總部...', { fontSize: '24px', fill: '#5e3a2c', fontStyle: 'bold', align: 'center' }).setOrigin(0.5).setDepth(100000).setScrollFactor(0);
@@ -233,36 +229,26 @@ function create() {
         if (!loadGameData()) { generateNewMap(); generateQuest(); }
     });
     
-    // [優化] Tap to Start 互動解鎖音效
     this.time.delayedCall(1800, () => {
         updateUI();
         if (activeExpedition) uiExpedTracker.setVisible(true);
         
         loadSpinner.setVisible(false);
         loadText.setText('【 點擊進入溫泉 】').setFontSize('32px').setInteractive({ useHandCursor: true });
-        
         selfRef.tweens.add({ targets: loadText, alpha: 0.3, yoyo: true, repeat: -1, duration: 800 });
 
         loadText.once('pointerdown', () => {
             isGameLoaded = true; 
-            
             if (userSettings.music) {
                 if (soundWaterfall && !soundWaterfall.isPlaying) soundWaterfall.play();
                 if (soundDay && !soundDay.isPlaying) soundDay.play();
                 if (soundNight && !soundNight.isPlaying) soundNight.play();
                 syncRealTime(); 
             }
-
             loadOverlay.disableInteractive(); 
             selfRef.tweens.add({ 
-                targets: [loadOverlay, loadText], 
-                alpha: 0, 
-                duration: 800, 
-                onComplete: () => {
-                    selfRef.tweens.killTweensOf(loadText); 
-                    loadOverlay.destroy(); 
-                    loadText.destroy();
-                }
+                targets: [loadOverlay, loadText], alpha: 0, duration: 800, 
+                onComplete: () => { selfRef.tweens.killTweensOf(loadText); loadOverlay.destroy(); loadText.destroy(); }
             });
         });
     });
@@ -286,56 +272,8 @@ function create() {
 
     nightOverlay = this.add.rectangle(400, 300, 800, 600, 0x0a3d62, 0).setDepth(1800).setScrollFactor(0);
 
-    // --- [天氣系統：粒子發射與排程] ---
-    let weatherSnow = selfRef.add.particles(0, 0, 'snowParticle', {
-        x: { min: -200, max: 1000 }, y: -50,
-        lifespan: 6000,
-        speedY: { min: 30, max: 80 }, speedX: { min: -20, max: 20 },
-        scale: { min: 0.3, max: 1.0 }, alpha: { start: 0.8, end: 0 },
-        quantity: 2, blendMode: 'NORMAL'
-    }).setDepth(1900).setScrollFactor(0).stop();
-
-    let weatherSakura = selfRef.add.particles(0, 0, 'sakuraParticle', {
-        x: { min: -400, max: 800 }, y: -50,
-        lifespan: 7000,
-        speedY: { min: 40, max: 90 }, speedX: { min: 50, max: 120 }, 
-        rotate: { min: 0, max: 360 }, scale: { min: 0.6, max: 1.2 }, 
-        alpha: { start: 1, end: 0 },
-        quantity: 1, blendMode: 'NORMAL'
-    }).setDepth(1900).setScrollFactor(0).stop();
-
-    selfRef.currentWeather = 'clear';
-
-    function changeWeather() {
-        if (!isGameLoaded || !userSettings.vfx) return; 
-        
-        let weathers = ['clear', 'snow', 'sakura'];
-        let nextWeather = Phaser.Utils.Array.GetRandom(weathers);
-        if (nextWeather === selfRef.currentWeather) return;
-        selfRef.currentWeather = nextWeather;
-
-        weatherSnow.stop(); weatherSakura.stop();
-        let msg = '', color = '#fff';
-
-        if (selfRef.currentWeather === 'snow') {
-            weatherSnow.start(); msg = '❄️ 寒流來襲，下雪了...'; color = '#81ecec';
-        } else if (selfRef.currentWeather === 'sakura') {
-            weatherSakura.start(); msg = '🌸 微風徐徐，櫻花飛舞...'; color = '#ff9ff3';
-        } else {
-            msg = '☀️ 天氣放晴了'; color = '#ffeaa7';
-        }
-        showFloatingText(400, 150, msg, color, '20px', true);
-    }
-
-    selfRef.time.addEvent({ delay: 60000, loop: true, callback: changeWeather });
-    
-    selfRef.time.delayedCall(8000, () => {
-        if (!isGameLoaded || !userSettings.vfx) return;
-        selfRef.currentWeather = Math.random() > 0.5 ? 'snow' : 'sakura';
-        if(selfRef.currentWeather === 'snow') weatherSnow.start(); else weatherSakura.start();
-        showFloatingText(400, 150, selfRef.currentWeather === 'snow' ? '❄️ 湯之谷的初雪...' : '🌸 櫻花季開始了...', selfRef.currentWeather === 'snow' ? '#81ecec' : '#ff9ff3', '24px', true);
-    });
-    // ------------------------------------
+    // [模組化] 初始化天氣系統
+    WeatherSystem.init(selfRef);
 
     uiScore = this.add.text(20, 15, '', { fontSize: '20px', fill: '#ffeaa7', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setDepth(2000).setScrollFactor(0);
     uiPremium = this.add.text(20, 40, '', { fontSize: '20px', fill: '#81ecec', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setDepth(2000).setScrollFactor(0);
@@ -389,7 +327,6 @@ function create() {
         let title = selfRef.add.text(0, -150, '⚙️ Settings', { fontSize: '24px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
         let closeBtn = selfRef.add.text(170, -150, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
-        // [防護鎖]
         closeBtn.on('pointerdown', (p) => { 
             p.stopPropagation(); 
             selfRef.time.delayedCall(10, () => { if(settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; } });
@@ -457,14 +394,8 @@ function create() {
             }
         });
 
-        // --- [天氣系統：配合 VFX 開關] ---
-        if (userSettings.vfx && selfRef.currentWeather) {
-            if (selfRef.currentWeather === 'snow') weatherSnow.start();
-            if (selfRef.currentWeather === 'sakura') weatherSakura.start();
-        } else if (typeof weatherSnow !== 'undefined') {
-            weatherSnow.stop();
-            weatherSakura.stop();
-        }
+        // [模組化] 同步天氣特效設定
+        WeatherSystem.applySettings();
     }
 
     function openPokedex() {
@@ -476,7 +407,6 @@ function create() {
         let title = selfRef.add.text(400, 50, t('btnDex'), { fontSize: '32px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
         let closeBtn = selfRef.add.text(750, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
-        // [防護鎖]
         closeBtn.on('pointerdown', (p) => { 
             p.stopPropagation(); 
             selfRef.time.delayedCall(10, () => { if(dexPanel) { dexPanel.destroy(true); dexPanel = null; } });
@@ -503,7 +433,6 @@ function create() {
         let title = selfRef.add.text(400, 50, '🎒 Roster', { fontSize: '32px', fill: '#ff9ff3', fontStyle: 'bold' }).setOrigin(0.5);
         let closeBtn = selfRef.add.text(750, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
-        // [防護鎖]
         closeBtn.on('pointerdown', (p) => { 
             p.stopPropagation(); 
             selfRef.time.delayedCall(10, () => { if(rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; } });
@@ -786,7 +715,6 @@ function create() {
             let eBtnYes = selfRef.add.text(-100, 130, '[ 派遣出發 ]', { fontSize: '20px', fill: '#55efc4', backgroundColor: '#27ae60', padding: {x:15,y:8} }).setOrigin(0.5).setInteractive();
             let eBtnNo = selfRef.add.text(100, 130, '[ 放棄 ]', { fontSize: '20px', fill: '#ff7675', backgroundColor: '#c0392b', padding: {x:15,y:8} }).setOrigin(0.5).setInteractive();
             
-            // [防護鎖]
             eBtnNo.on('pointerdown', (p) => { 
                 p.stopPropagation(); 
                 selfRef.time.delayedCall(10, () => { if(expedPanel) { expedPanel.destroy(); expedPanel = null; } });
@@ -898,13 +826,6 @@ function create() {
         }
     });
 
-    function showFloatingText(x, y, text, color, fontSize = '18px', isFixed = false) {
-        if (!userSettings.vfx && !isFixed) return; 
-        let t = selfRef.add.text(x, y, text, { fontSize: fontSize, fill: color, fontStyle: 'bold', stroke: '#000', strokeThickness: 3 }).setDepth(2500).setOrigin(0.5);
-        if (isFixed) t.setScrollFactor(0); 
-        selfRef.tweens.add({ targets: t, y: y - 50, alpha: 0, duration: 2000, onComplete: () => t.destroy() });
-    }
-
     function drawPool(graphics, sx, sy, level, state) {
         graphics.clear();
         if (state === 'building' || state === 'ready') {
@@ -921,7 +842,6 @@ function create() {
     shopPanel = this.add.container(400, 300).setDepth(3000).setScrollFactor(0).setVisible(false);
     let shopBg = this.add.rectangle(0, 0, 600, 450, 0x2d3436, 0.95).setStrokeStyle(4, 0xf39c12).setInteractive();
     
-    // [防護鎖]
     let closeBtn = this.add.text(260, -200, '✖', { fontSize: '28px' }).setInteractive();
     closeBtn.on('pointerdown', (p) => {
         p.stopPropagation(); 
@@ -937,7 +857,6 @@ function create() {
         let priceTxt = item.price === 0 ? 'FREE' : `${item.price}${item.currency==='ACORN'?'🌰':'💎'}`;
         shopPanel.add(this.add.text(120, rowY, priceTxt, { fontSize:'16px', fill:'#f1c40f' }).setOrigin(0.5));
         
-        // [防護鎖]
         let buyBtn = this.add.text(220, rowY, `[ ${t('buy')} ]`, { fontSize:'16px', fill:'#55efc4' }).setInteractive();
         buyBtn.on('pointerdown', (p) => { 
             p.stopPropagation(); 
@@ -1046,7 +965,6 @@ function create() {
                     let isMilk = Math.random() > 0.5;
                     affectionBubble = selfRef.add.text(targetPool.screenX, targetPool.screenY - 50, isMilk ? '🍼' : '🍡', {fontSize:'24px', backgroundColor:'#fff', padding:{x:5,y:5}}).setOrigin(0.5).setInteractive().setDepth(2000);
                     
-                    // [防護鎖] 改為延遲銷毀，避免阻斷輸入池
                     affectionBubble.on('pointerdown', (p) => {
                         p.stopPropagation();
                         affectionBubble.setVisible(false); 
@@ -1184,7 +1102,6 @@ function update() {
                 spr.setPosition(sx, sy).setDepth(x+y).setVisible(true);
                 activeTiles.push(spr);
                 
-                // [修復] 強制重置非高山地塊的 Origin，避免共用物件池導致錯位
                 if (tile.status === -6) spr.setTexture('cliff').setOrigin(0.5, 0);
                 else if (tile.status === -2) spr.setTexture('mountain').setOrigin(0.5, 0.9); 
                 else if (tile.status === -3) spr.setTexture('river').setOrigin(0.5, 0);
