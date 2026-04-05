@@ -69,8 +69,6 @@ const config = {
 };
 const game = new Phaser.Game(config);
 
-{ preload: preload, create: create, updat
-
 let uiScore, uiPremium, uiPlayerLvl, uiQuest, uiMode, btnSettings, uiTime, btnTimeToggle, uiExpedTracker, uiBuildCancel, uiSaveSync;
 let dexPanel = null, shopPanel = null, expedPanel = null, rosterPanel = null, settingsPanel = null;
 let cursor;
