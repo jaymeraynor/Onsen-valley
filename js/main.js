@@ -20,7 +20,14 @@ const halfWidth = 32, halfHeight = 16, tileThickness = 8;
 const offsetX = gridSize * halfWidth, offsetY = 0; 
 const SAVE_KEY = 'yokai_hotspring_save_v1_4';
 
-let userSettings = JSON.parse(localStorage.getItem('yokai_settings')) || { sfx: true, music: true, vfx: true, lang: null };
+// --- [微創修復：防禦 iOS Safari 隱私權限制導致的白畫面] ---
+let userSettings = { sfx: true, music: true, vfx: true, lang: null };
+try {
+    let savedSettings = localStorage.getItem('yokai_settings');
+    if (savedSettings) userSettings = JSON.parse(savedSettings);
+} catch (e) {
+    console.warn("無法讀取本機設定，可能處於無痕模式或受隱私權限制");
+}
 
 function getDeviceLanguage() {
     if (userSettings.lang) return userSettings.lang;
@@ -48,9 +55,21 @@ function showFloatingText(x, y, text, color, fontSize = '18px', isFixed = false)
     if (isFixed) t.setScrollFactor(0); 
     selfRef.tweens.add({ targets: t, y: y - 50, alpha: 0, duration: 2000, onComplete: () => t.destroy() });
 }
-
-const config = { type: Phaser.AUTO, width: 800, height: 600, backgroundColor: '#2d3436', scene: { preload: preload, create: create, update: update } };
+// --- [微創修復：增加手機版自動縮放適配] ---
+const config = { 
+    type: Phaser.AUTO, 
+    width: 800, 
+    height: 600, 
+    backgroundColor: '#2d3436', 
+    scale: {
+        mode: Phaser.Scale.FIT,              // 自動等比例縮放以適應螢幕
+        autoCenter: Phaser.Scale.CENTER_BOTH // 自動在畫面中置中
+    },
+    scene: { preload: preload, create: create, update: update } 
+};
 const game = new Phaser.Game(config);
+
+{ preload: preload, create: create, updat
 
 let uiScore, uiPremium, uiPlayerLvl, uiQuest, uiMode, btnSettings, uiTime, btnTimeToggle, uiExpedTracker, uiBuildCancel, uiSaveSync;
 let dexPanel = null, shopPanel = null, expedPanel = null, rosterPanel = null, settingsPanel = null;
