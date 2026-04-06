@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en"> 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>湯之谷 Onsen Valley | 療癒系放置</title>
+    <title>Onsen Valley | Cozy Idle Sim</title>
+    <meta name="description" content="Welcome to Onsen Valley, a cozy Yokai hot spring idle sim. (療癒系妖怪溫泉放置經營遊戲)">
     
-    <link rel="stylesheet" href="css/style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=1.0.14">
     <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -17,13 +18,10 @@
             document.getElementById('debug-log').innerHTML += '⚠️ 崩潰: ' + errStr + '<br>檔案: ' + file + ' (行 ' + line + ')<br>';
             return false;
         };
-        window.addEventListener('unhandledrejection', function(event) {
-            document.getElementById('debug-log').innerHTML += '⚠️ 非同步錯誤: ' + (event.reason ? event.reason.stack || event.reason : '未知') + '<br>';
-        });
     </script>
 
-    <script src="js/data.js?v=5"></script>
-    <script src="js/weather.js?v=5"></script> 
-    <script src="js/main.js?v=5"></script>
+    <script src="data.js?v=1.0.14"></script>
+    <script src="weather.js?v=1.0.14"></script> 
+    <script src="main.js?v=1.0.14"></script>
 </body>
 </html>
