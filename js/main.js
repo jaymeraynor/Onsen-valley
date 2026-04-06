@@ -20,7 +20,7 @@ const halfWidth = 32, halfHeight = 16, tileThickness = 8;
 const offsetX = gridSize * halfWidth, offsetY = 0; 
 const SAVE_KEY = 'yokai_hotspring_save_v1_4';
 
-// --- [微創修復：防禦 iOS Safari 隱私權限制導致的白畫面] ---
+// --- [防禦 iOS Safari 隱私權限制導致的白畫面] ---
 let userSettings = { sfx: true, music: true, vfx: true, lang: null };
 try {
     let savedSettings = localStorage.getItem('yokai_settings');
@@ -55,15 +55,16 @@ function showFloatingText(x, y, text, color, fontSize = '18px', isFixed = false)
     if (isFixed) t.setScrollFactor(0); 
     selfRef.tweens.add({ targets: t, y: y - 50, alpha: 0, duration: 2000, onComplete: () => t.destroy() });
 }
-// --- [微創修復：增加手機版自動縮放適配] ---
+
+// --- [增加手機版自動縮放適配] ---
 const config = { 
     type: Phaser.AUTO, 
     width: 800, 
     height: 600, 
     backgroundColor: '#2d3436', 
     scale: {
-        mode: Phaser.Scale.FIT,              // 自動等比例縮放以適應螢幕
-        autoCenter: Phaser.Scale.CENTER_BOTH // 自動在畫面中置中
+        mode: Phaser.Scale.FIT,              
+        autoCenter: Phaser.Scale.CENTER_BOTH 
     },
     scene: { preload: preload, create: create, update: update } 
 };
@@ -129,6 +130,9 @@ function preload() {
     
     yokaiDatabase.forEach(yokai => { drawQYokai(yokai.key, yokai.colors); });
 
+    // --- [預載] 絕美 PNG 背景圖 ---
+    this.load.image('loading_bg', 'img/loading_bg.png');
+
     if (window.location.protocol !== 'file:') {
         this.load.audio('bgm_waterfall', 'audio/waterfall.mp3');
         this.load.audio('bgm_day', 'audio/wind_day.mp3');
@@ -147,10 +151,34 @@ function create() {
         soundNight = this.sound.add('bgm_night', { loop: true, volume: 0 }); 
     }
 
-    let loadOverlay = this.add.rectangle(400, 300, 800, 600, 0xf5e6ca).setDepth(99999).setScrollFactor(0).setInteractive();
-    let loadSpinner = this.add.text(400, 240, '♨️', { fontSize: '64px', fill: '#c0392b' }).setOrigin(0.5).setDepth(100000).setScrollFactor(0);
-    let loadText = this.add.text(400, 320, '正在連線至溫泉總部...', { fontSize: '24px', fill: '#5e3a2c', fontStyle: 'bold', align: 'center' }).setOrigin(0.5).setDepth(100000).setScrollFactor(0);
-    this.tweens.add({ targets: loadSpinner, angle: 360, repeat: -1, duration: 1500, ease: 'Linear' });
+    // --- [史詩級動態載入畫面：VFX 魔術] ---
+    let loadBg = this.add.image(400, 300, 'loading_bg').setDepth(99998).setScrollFactor(0);
+    // 確保圖片載入後能等比縮放覆蓋畫面
+    let scaleX = 800 / (loadBg.width || 800); 
+    let scaleY = 600 / (loadBg.height || 600);
+    let finalScale = Math.max(scaleX, scaleY);
+    loadBg.setScale(finalScale);
+    
+    this.tweens.add({ targets: loadBg, scale: finalScale * 1.03, yoyo: true, repeat: -1, duration: 4000, ease: 'Sine.easeInOut' });
+
+    let loadSteam = this.add.particles(400, 400, 'steamTexture', {
+        speed: { min: 10, max: 30 }, angle: { min: 250, max: 290 },
+        scale: { start: 1.0, end: 4.0 }, alpha: { start: 0.6, end: 0 },
+        lifespan: 3500, frequency: 150, blendMode: 'ADD'
+    }).setDepth(99999).setScrollFactor(0);
+
+    let loadSakura = this.add.particles(0, 0, 'sakuraParticle', {
+        x: { min: -200, max: 800 }, y: -50,
+        lifespan: 6000, speedY: { min: 30, max: 80 }, speedX: { min: 30, max: 80 },
+        rotate: { min: 0, max: 360 }, scale: { min: 0.6, max: 1.5 }, alpha: { start: 1, end: 0 },
+        quantity: 1, blendMode: 'NORMAL'
+    }).setDepth(99999).setScrollFactor(0);
+
+    let loadText = this.add.text(400, 520, '【 點擊進入溫泉 】', { 
+        fontSize: '32px', fill: '#fff', fontStyle: 'bold', 
+        stroke: '#5e3a2c', strokeThickness: 6, align: 'center' 
+    }).setOrigin(0.5).setDepth(100000).setScrollFactor(0).setInteractive({ useHandCursor: true }).setVisible(false);
+    // ------------------------------------
 
     function generateNewMap() {
         for (let y = 0; y < gridSize; y++) {
@@ -240,19 +268,18 @@ function create() {
         return false;
     }
 
-    this.time.delayedCall(600, () => { loadText.setText('正在同步旅館帳本與夥伴陣容...'); });
-    this.time.delayedCall(1200, () => {
-        loadText.setText('正在重建 3D 地貌與建築...');
+    // 幕後生成地圖與讀檔
+    this.time.delayedCall(100, () => {
         if (!loadGameData()) { generateNewMap(); generateQuest(); }
     });
-    
+
+    // 1.8秒後顯示進入遊戲按鈕
     this.time.delayedCall(1800, () => {
         updateUI();
         if (activeExpedition) uiExpedTracker.setVisible(true);
         
-        loadSpinner.setVisible(false);
-        loadText.setText('【 點擊進入溫泉 】').setFontSize('32px').setInteractive({ useHandCursor: true });
-        selfRef.tweens.add({ targets: loadText, alpha: 0.3, yoyo: true, repeat: -1, duration: 800 });
+        loadText.setVisible(true);
+        this.tweens.add({ targets: loadText, alpha: 0.3, yoyo: true, repeat: -1, duration: 800 });
 
         loadText.once('pointerdown', () => {
             isGameLoaded = true; 
@@ -262,10 +289,14 @@ function create() {
                 if (soundNight && !soundNight.isPlaying) soundNight.play();
                 syncRealTime(); 
             }
-            loadOverlay.disableInteractive(); 
-            selfRef.tweens.add({ 
-                targets: [loadOverlay, loadText], alpha: 0, duration: 800, 
-                onComplete: () => { selfRef.tweens.killTweensOf(loadText); loadOverlay.destroy(); loadText.destroy(); }
+            
+            this.tweens.add({ 
+                targets: [loadBg, loadText], alpha: 0, duration: 1000, 
+                onComplete: () => { 
+                    selfRef.tweens.killTweensOf(loadBg); selfRef.tweens.killTweensOf(loadText);
+                    loadSteam.destroy(); loadSakura.destroy();
+                    loadBg.destroy(); loadText.destroy(); 
+                }
             });
         });
     });
@@ -290,7 +321,9 @@ function create() {
     nightOverlay = this.add.rectangle(400, 300, 800, 600, 0x0a3d62, 0).setDepth(1800).setScrollFactor(0);
 
     // [模組化] 初始化天氣系統
-    WeatherSystem.init(selfRef);
+    if (typeof WeatherSystem !== 'undefined') {
+        WeatherSystem.init(selfRef);
+    }
 
     uiScore = this.add.text(20, 15, '', { fontSize: '20px', fill: '#ffeaa7', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setDepth(2000).setScrollFactor(0);
     uiPremium = this.add.text(20, 40, '', { fontSize: '20px', fill: '#81ecec', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setDepth(2000).setScrollFactor(0);
@@ -412,7 +445,7 @@ function create() {
         });
 
         // [模組化] 同步天氣特效設定
-        WeatherSystem.applySettings();
+        if (typeof WeatherSystem !== 'undefined') WeatherSystem.applySettings();
     }
 
     function openPokedex() {
