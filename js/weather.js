@@ -7,7 +7,6 @@ const WeatherSystem = {
     current: 'clear',
 
     init: function(scene) {
-        // 下雪特效 (垂直緩降)
         this.snow = scene.add.particles(0, 0, 'snowParticle', {
             x: { min: -200, max: 1000 }, y: -50,
             lifespan: 6000,
@@ -16,7 +15,6 @@ const WeatherSystem = {
             quantity: 2, blendMode: 'NORMAL'
         }).setDepth(1900).setScrollFactor(0).stop();
 
-        // 櫻花特效 (向右下角微風吹拂 + 旋轉)
         this.sakura = scene.add.particles(0, 0, 'sakuraParticle', {
             x: { min: -400, max: 800 }, y: -50,
             lifespan: 7000,
@@ -26,10 +24,8 @@ const WeatherSystem = {
             quantity: 1, blendMode: 'NORMAL'
         }).setDepth(1900).setScrollFactor(0).stop();
 
-        // 每 60 秒機率性切換一次天氣
         scene.time.addEvent({ delay: 60000, loop: true, callback: () => this.changeWeather(scene) });
         
-        // [驚喜彩蛋] 遊戲載入 8 秒後必定觸發一波初雪或櫻花！
         scene.time.delayedCall(8000, () => {
             if (!isGameLoaded || !userSettings.vfx) return;
             this.current = Math.random() > 0.5 ? 'snow' : 'sakura';
