@@ -3,23 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>湯之谷 Onsen Valley | 療癒系放置經營</title>
-    <meta name="description" content="歡迎來到《湯之谷》，這是一款療癒系妖怪溫泉放置經營遊戲。">
+    <title>湯之谷 Onsen Valley | 療癒系放置</title>
     
-    <link rel="stylesheet" href="css/style.css?v=4">
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="css/style.css?v=5">
+    <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div id="debug-log" style="position:absolute; top:10px; left:10px; color:#ff7675; z-index:9999; font-size:14px; font-weight:bold; pointer-events:none;"></div>
+    <div id="debug-log" style="position:absolute; top:10px; left:10px; color:#ff7675; z-index:9999; font-size:12px; font-weight:bold; pointer-events:none; background:rgba(0,0,0,0.8); padding:5px;"></div>
     <script>
-        window.onerror = function(msg, url, line) {
-            document.getElementById('debug-log').innerHTML += '⚠️ 錯誤: ' + msg + '<br>行號: ' + line + '<br>';
+        window.onerror = function(msg, url, line, col, error) {
+            var errStr = error ? error.stack : msg;
+            var file = url ? url.substring(url.lastIndexOf('/') + 1) : '未知檔案';
+            document.getElementById('debug-log').innerHTML += '⚠️ 崩潰: ' + errStr + '<br>檔案: ' + file + ' (行 ' + line + ')<br>';
             return false;
         };
+        window.addEventListener('unhandledrejection', function(event) {
+            document.getElementById('debug-log').innerHTML += '⚠️ 非同步錯誤: ' + (event.reason ? event.reason.stack || event.reason : '未知') + '<br>';
+        });
     </script>
 
-    <script src="js/data.js?v=4"></script>
-    <script src="js/weather.js?v=4"></script> 
-    <script src="js/main.js?v=4"></script>
+    <script src="js/data.js?v=5"></script>
+    <script src="js/weather.js?v=5"></script> 
+    <script src="js/main.js?v=5"></script>
 </body>
 </html>
