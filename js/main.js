@@ -63,8 +63,9 @@ const config = {
     height: 540,
     backgroundColor: '#2d3436', 
     scale: {
-        mode: Phaser.Scale.FIT,              
-        autoCenter: Phaser.Scale.CENTER_BOTH 
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        max: { width: 960, height: 540 }
     },
     scene: { preload: preload, create: create, update: update } 
 };
@@ -177,8 +178,6 @@ function create() {
         }
     }
 
-    // 瀏覽器縮放時重新計算 canvas 尺寸
-    window.addEventListener('resize', () => { this.scale.refresh(); }, { passive: true });
     // ------------------------------------
 
     function generateNewMap() {
