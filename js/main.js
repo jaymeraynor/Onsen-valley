@@ -870,7 +870,11 @@ function create() {
     this.input.on('pointerup', function (p) {
         if(!isGameLoaded) return;
         pinchStartDist = -1; lastDragGrid = { x: -1, y: -1 };
-        if (activeShopItem || Math.abs(p.x - p.downX) > 15 || Math.abs(p.y - p.downY) > 15) return; 
+        // Scale drag-rejection threshold with zoom: at zoom=3 a 5-world-pixel tremor = 15 screen px → wrongly rejected.
+        // Use world-space distance so tolerance stays ~12 world pixels regardless of zoom level.
+        let zoom = selfRef.cameras.main.zoom;
+        let dragThresh = 12 * zoom;
+        if (activeShopItem || Math.abs(p.x - p.downX) > dragThresh || Math.abs(p.y - p.downY) > dragThresh) return;
         if (dexPanel || rosterPanel || settingsPanel || expedPanel || (shopPanel && shopPanel.visible)) return; 
         // No pixel-space guards — UI is HTML overlay, canvas receives only game-area clicks
         let tapIsoX = (p.worldX - offsetX) / halfWidth; let tapIsoY = (p.worldY - offsetY) / halfHeight;
