@@ -855,7 +855,7 @@ function create() {
         if (selfRef.input.pointer1.isDown && selfRef.input.pointer2.isDown) {
             let dist = Phaser.Math.Distance.Between(selfRef.input.pointer1.x, selfRef.input.pointer1.y, selfRef.input.pointer2.x, selfRef.input.pointer2.y);
             if (pinchStartDist === -1) { pinchStartDist = dist; initialZoom = selfRef.cameras.main.zoom; } 
-            else { let scale = dist / pinchStartDist; selfRef.cameras.main.setZoom(Phaser.Math.Clamp(initialZoom * scale, 0.1, 2.0)); } 
+            else { let scale = dist / pinchStartDist; selfRef.cameras.main.setZoom(Phaser.Math.Clamp(initialZoom * scale, 0.5, 3.0)); }
         } else if (p.isDown) {
             if (activeShopItem) { attemptPlaceItem(p); } 
             else { pinchStartDist = -1; let dx = p.x - p.prevPosition.x; let dy = p.y - p.prevPosition.y; selfRef.cameras.main.scrollX -= dx / selfRef.cameras.main.zoom; selfRef.cameras.main.scrollY -= dy / selfRef.cameras.main.zoom; }
@@ -864,7 +864,7 @@ function create() {
 
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
         if(!isGameLoaded) return;
-        let newZoom = selfRef.cameras.main.zoom - (deltaY * 0.001); selfRef.cameras.main.setZoom(Phaser.Math.Clamp(newZoom, 0.1, 2.0));
+        let newZoom = selfRef.cameras.main.zoom - (deltaY * 0.001); selfRef.cameras.main.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 3.0));
     });
 
     this.input.on('pointerup', function (p) {
