@@ -51,7 +51,20 @@ const itemDatabase = [
 ];
 
 const poolColors = [ null, { w: 0x74b9ff, l: 0x0984e3, r: 0x0652dd }, { w: 0xfd79a8, l: 0xe84393, r: 0xb71540 }, { w: 0xffeaa7, l: 0xf39c12, r: 0xd35400 }, { w: 0x55efc4, l: 0x00b894, r: 0x00846a }, { w: 0xa29bfe, l: 0x6c5ce7, r: 0x4834d4 }, { w: 0xff7675, l: 0xd63031, r: 0xb33939 } ];
-const unlockLevels = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55]; 
+const unlockLevels = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55];
+
+const islandDatabase = [
+    { id: 0, cx: 0, cy: 0, radius: 13, requiredLevel: 0,
+      name: { zh: '湯之谷', 'zh-CN': '汤之谷', ja: '湯の谷', ko: '온천 계곡', en: 'Onsen Valley', es: 'Valle Onsen' } },
+    { id: 1, cx: 38, cy: -18, radius: 9, requiredLevel: 5,
+      name: { zh: '霧島', 'zh-CN': '雾岛', ja: '霧島', ko: '안개 섬', en: 'Mist Isle', es: 'Isla Niebla' } },
+    { id: 2, cx: -32, cy: 25, radius: 8, requiredLevel: 12,
+      name: { zh: '竹林島', 'zh-CN': '竹林岛', ja: '竹林島', ko: '대나무 섬', en: 'Bamboo Isle', es: 'Isla Bambú' } },
+    { id: 3, cx: 42, cy: 38, radius: 10, requiredLevel: 25,
+      name: { zh: '火山島', 'zh-CN': '火山岛', ja: '火山島', ko: '화산 섬', en: 'Volcano Isle', es: 'Isla Volcán' } },
+    { id: 4, cx: -40, cy: -35, radius: 7, requiredLevel: 40,
+      name: { zh: '極光島', 'zh-CN': '极光岛', ja: 'オーロラ島', ko: '오로라 섬', en: 'Aurora Isle', es: 'Isla Aurora' } }
+];
 
 function getExpRequired(lvl) { return Math.floor(100 * Math.pow(1.5, lvl - 1)); }
 function getCost(level) { return Math.floor(50 * Math.pow(1.8, level - 1)); }

@@ -10,7 +10,8 @@ let guideFinger = null;
 let staff = { promoter: false, foreman: false };
 let selfRef, spawnTimerEvent, nightOverlay;
 let activeShopItem = null, timeMode = 'auto', activeExpedition = null; 
-let ownedYokais = []; 
+let ownedYokais = [];
+let unlockedIslands = [0];
 
 let isGameLoaded = false; 
 
@@ -18,7 +19,7 @@ let gridSize = 250;
 const centerGrid = Math.floor(gridSize / 2); 
 const halfWidth = 32, halfHeight = 16, tileThickness = 8; 
 const offsetX = gridSize * halfWidth, offsetY = 0; 
-const SAVE_KEY = 'yokai_hotspring_save_v1_4';
+const SAVE_KEY = 'yokai_hotspring_save_v1_5';
 
 // --- [防禦 iOS Safari 隱私權限制導致的白畫面] ---
 let userSettings = { sfx: true, music: true, vfx: true, lang: null };
@@ -64,8 +65,7 @@ const config = {
     backgroundColor: '#2d3436', 
     scale: {
         mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-        max: { width: 960, height: 540 }
+        autoCenter: Phaser.Scale.CENTER_BOTH
     },
     scene: { preload: preload, create: create, update: update } 
 };
@@ -97,10 +97,11 @@ function preload() {
         g.generateTexture(key, 64, 32 + tileThickness); g.clear();
     }
     
-    draw3DTile('grass1', 0x7bed9f, 0x8b5a2b, 0x654321); draw3DTile('grass2', 0x2ed573, 0x8b5a2b, 0x654321); 
-    draw3DTile('river', 0x3498db, 0x2980b9, 0x1f3a93, true); draw3DTile('waterfall', 0x74b9ff, 0x0984e3, 0x0652dd, true); 
-    g.fillStyle(0x000000, 0.75); g.beginPath(); g.moveTo(32, 0); g.lineTo(64, 16); g.lineTo(32, 32); g.lineTo(0, 16); g.closePath(); g.fillPath(); g.generateTexture('fog', 64, 32); g.clear();
+    draw3DTile('grass1', 0x7bed9f, 0x8b5a2b, 0x654321); draw3DTile('grass2', 0x2ed573, 0x8b5a2b, 0x654321);
+    draw3DTile('river', 0x3498db, 0x2980b9, 0x1f3a93, true); draw3DTile('waterfall', 0x74b9ff, 0x0984e3, 0x0652dd, true);
+    draw3DTile('ocean', 0x0984e3, 0x0652dd, 0x023e8a, true);
     draw3DTile('cliff', 0x2d3436, 0x1e272e, 0x000000);
+    g.fillStyle(0x000000, 0.75); g.beginPath(); g.moveTo(32, 0); g.lineTo(64, 16); g.lineTo(32, 32); g.lineTo(0, 16); g.closePath(); g.fillPath(); g.generateTexture('fog', 64, 32); g.clear();
 
     g.fillStyle(0x2c3e50, 1); g.beginPath(); g.moveTo(32, 90); g.lineTo(64, 74); g.lineTo(40, 20); g.lineTo(32, 0); g.closePath(); g.fillPath();
     g.fillStyle(0x34495e, 1); g.beginPath(); g.moveTo(32, 90); g.lineTo(0, 74); g.lineTo(24, 20); g.lineTo(32, 0); g.closePath(); g.fillPath();
@@ -181,21 +182,43 @@ function create() {
     // ------------------------------------
 
     function generateNewMap() {
+        // Fill everything with ocean
         for (let y = 0; y < gridSize; y++) {
             let row = [];
             for (let x = 0; x < gridSize; x++) {
-                let status = 0; 
-                if (x === 0 || x === gridSize-1 || y === 0 || y === gridSize-1) status = -6; 
-                else { let r = Math.random(); if (r < 0.12) status = -2; else if (r < 0.18) status = -3; else if (r < 0.19) status = -5; }
-                let unlocked = false;
-                if (Math.abs(x - centerGrid) <= 3 && Math.abs(y - centerGrid) <= 3) { status = 0; unlocked = true; } 
-                if (status === -5 && Math.abs(x - centerGrid) <= 10 && Math.abs(y - centerGrid) <= 10) status = 0; 
-                row.push({ status: status, unlocked: unlocked, isAdj: false });
+                row.push({ status: -7, unlocked: false, isAdj: false });
             }
             mapData.push(row);
         }
+
+        // Carve out each island
+        islandDatabase.forEach(island => {
+            let icx = centerGrid + island.cx;
+            let icy = centerGrid + island.cy;
+            let r = island.radius;
+            for (let ty = Math.max(0, Math.floor(icy - r - 2)); ty <= Math.min(gridSize-1, Math.ceil(icy + r + 2)); ty++) {
+                for (let tx = Math.max(0, Math.floor(icx - r - 2)); tx <= Math.min(gridSize-1, Math.ceil(icx + r + 2)); tx++) {
+                    let dist = Math.sqrt(Math.pow(tx - icx, 2) + Math.pow(ty - icy, 2));
+                    if (dist > r) continue;
+                    let rand = Math.random();
+                    let tileStatus = 0;
+                    let isEdge = dist > r - 1.5;
+                    if (!isEdge) {
+                        if (rand < 0.10) tileStatus = -2;
+                        else if (rand < 0.16) tileStatus = -3;
+                    }
+                    let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 3 && Math.abs(ty - icy) <= 3;
+                    if (isStartCenter) tileStatus = 0; // keep center clear
+                    mapData[ty][tx] = { status: tileStatus, unlocked: isStartCenter, isAdj: false };
+                }
+            }
+        });
+
+        // Convert rivers adjacent to mountains into waterfalls
         for (let y = 1; y < gridSize-1; y++) {
-            for (let x = 1; x < gridSize-1; x++) { if (mapData[y][x].status === -3 && mapData[y-1][x].status === -2) mapData[y][x].status = -4; }
+            for (let x = 1; x < gridSize-1; x++) {
+                if (mapData[y][x].status === -3 && mapData[y-1][x].status === -2) mapData[y][x].status = -4;
+            }
         }
         updateAdjacency();
     }
@@ -210,6 +233,7 @@ function create() {
                 questStats = data.questStats || { yokaiServed: 0, buildCount: 0, expandCount: 0, decorCount: 0 }; 
                 currentQuest = data.currentQuest || currentQuest;
                 ownedYokais = data.ownedYokais || [];
+                unlockedIslands = data.unlockedIslands || [0];
                 yokaiDatabase.forEach((y, i) => { if (data.dex[i]) { y.unlocked = data.dex[i].unlocked; y.affection = data.dex[i].affection; } });
                 mapData = data.mapData.map(row => row.map(t => ({ status: t[0], unlocked: t[1] === 1, isAdj: t[2] === 1 })));
 
@@ -307,7 +331,7 @@ function create() {
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
                 mapData[y][x].isAdj = false;
-                if (!mapData[y][x].unlocked) {
+                if (!mapData[y][x].unlocked && mapData[y][x].status !== -7) {
                     let n = [{x:x,y:y-1},{x:x,y:y+1},{x:x-1,y:y},{x:x+1,y:y}];
                     for (let i of n) { if(i.x>=0 && i.x<gridSize && i.y>=0 && i.y<gridSize && mapData[i.y][i.x].unlocked) { mapData[y][x].isAdj = true; break; } }
                 }
@@ -379,8 +403,7 @@ function create() {
         let title = selfRef.add.text(0, -150, '⚙️ Settings', { fontSize: '24px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
         let closeBtn = selfRef.add.text(170, -150, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
-        closeBtn.on('pointerdown', (p) => { 
-            if (p && p.manager) p.manager.ignoreEvents = true; 
+        closeBtn.on('pointerdown', () => {
             selfRef.time.delayedCall(10, () => { if(settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; } });
         });
         
@@ -459,8 +482,7 @@ function create() {
         let title = selfRef.add.text(480, 50, t('btnDex'), { fontSize: '32px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
         let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
-        closeBtn.on('pointerdown', (p) => { 
-            if (p && p.manager) p.manager.ignoreEvents = true; 
+        closeBtn.on('pointerdown', () => {
             selfRef.time.delayedCall(10, () => { if(dexPanel) { dexPanel.destroy(true); dexPanel = null; } });
         });
         
@@ -485,8 +507,7 @@ function create() {
         let title = selfRef.add.text(480, 50, '🎒 Roster', { fontSize: '32px', fill: '#ff9ff3', fontStyle: 'bold' }).setOrigin(0.5);
         let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
-        closeBtn.on('pointerdown', (p) => { 
-            if (p && p.manager) p.manager.ignoreEvents = true; 
+        closeBtn.on('pointerdown', () => {
             selfRef.time.delayedCall(10, () => { if(rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; } });
         });
         
@@ -543,7 +564,7 @@ function create() {
         uiSaveSync.setVisible(true);
         let saveData = {
             tutorialStep: tutorialStep,
-            score: score, premiumCoin: premiumCoin, playerLevel: playerLevel, playerExp: playerExp, questStats: questStats, currentQuest: currentQuest, ownedYokais: ownedYokais,
+            score: score, premiumCoin: premiumCoin, playerLevel: playerLevel, playerExp: playerExp, questStats: questStats, currentQuest: currentQuest, ownedYokais: ownedYokais, unlockedIslands: unlockedIslands,
             dex: yokaiDatabase.map(y => ({ unlocked: y.unlocked, affection: y.affection })),
             mapData: mapData.map(row => row.map(t => [t.status, t.unlocked ? 1 : 0, t.isAdj ? 1 : 0])),
             pools: pools.map(p => ({ x: p.gridX, y: p.gridY, lvl: p.level, state: p.state, timeLeft: p.timeLeft, total: p.totalBuildTime, occ: p.occupants, res: p.reserved, max: p.maxOccupants })),
@@ -595,7 +616,33 @@ function create() {
 
     selfRef.addExp = function(amount) {
         playerExp += amount; let req = getExpRequired(playerLevel);
-        if (playerExp >= req) { playerExp -= req; playerLevel++; selfRef.cameras.main.flash(300, 85, 239, 196, 0.3); showFloatingText(480, 270, '🎉 升級 Lv' + playerLevel, '#55efc4', '32px', true); }
+        if (playerExp >= req) {
+            playerExp -= req; playerLevel++;
+            selfRef.cameras.main.flash(300, 85, 239, 196, 0.3);
+            showFloatingText(480, 270, '🎉 升級 Lv' + playerLevel, '#55efc4', '32px', true);
+            // Check if any island unlocks at this level
+            islandDatabase.forEach(island => {
+                if (island.id !== 0 && !unlockedIslands.includes(island.id) && playerLevel >= island.requiredLevel) {
+                    unlockedIslands.push(island.id);
+                    let icx = centerGrid + island.cx;
+                    let icy = centerGrid + island.cy;
+                    for (let dy = -2; dy <= 2; dy++) {
+                        for (let dx = -2; dx <= 2; dx++) {
+                            let tx = icx + dx, ty = icy + dy;
+                            if (tx >= 0 && tx < gridSize && ty >= 0 && ty < gridSize && mapData[ty][tx].status !== -7) {
+                                mapData[ty][tx].unlocked = true;
+                            }
+                        }
+                    }
+                    updateAdjacency();
+                    let islandName = island.name[currentLang] || island.name.en;
+                    selfRef.time.delayedCall(800, () => {
+                        showFloatingText(480, 200, '🏝️ ' + islandName + ' 解鎖！', '#74b9ff', '28px', true);
+                        selfRef.cameras.main.flash(500, 116, 185, 255, 0.4);
+                    });
+                }
+            });
+        }
         updateUI();
     };
 
@@ -725,6 +772,7 @@ function create() {
         if (clickGx < 0 || clickGx >= gridSize || clickGy < 0 || clickGy >= gridSize) return;
         let tile = mapData[clickGy][clickGx]; let sx = offsetX + (clickGx - clickGy) * halfWidth, sy = offsetY + (clickGx + clickGy) * halfHeight;
 
+        if (tile.status === -7) { showFloatingText(p.worldX, p.worldY, '🌊 茫茫大海...', '#74b9ff'); return; }
         if (tile.status === -6) { showFloatingText(p.worldX, p.worldY, '這是萬丈懸崖！', '#b2bec3'); return; }
 
         if (tile.status === -5) {
@@ -767,12 +815,10 @@ function create() {
             let eBtnYes = selfRef.add.text(-100, 130, '[ 派遣出發 ]', { fontSize: '20px', fill: '#55efc4', backgroundColor: '#27ae60', padding: {x:15,y:8} }).setOrigin(0.5).setInteractive();
             let eBtnNo = selfRef.add.text(100, 130, '[ 放棄 ]', { fontSize: '20px', fill: '#ff7675', backgroundColor: '#c0392b', padding: {x:15,y:8} }).setOrigin(0.5).setInteractive();
             
-            eBtnNo.on('pointerdown', (p) => { 
-                if (p && p.manager) p.manager.ignoreEvents = true; 
+            eBtnNo.on('pointerdown', () => {
                 selfRef.time.delayedCall(10, () => { if(expedPanel) { expedPanel.destroy(); expedPanel = null; } });
             });
-            eBtnYes.on('pointerdown', (p) => {
-                if (p && p.manager) p.manager.ignoreEvents = true;
+            eBtnYes.on('pointerdown', () => {
                 let finalData = updateExpedStats();
                 selectedTeam.forEach(y => { y.state = 'expedition'; });
                 activeExpedition = { gx: clickGx, gy: clickGy, sx: sx, sy: sy, dist: dist, timeTotal: finalData.fTime, timeLeft: finalData.fTime, rewardAcorn: finalData.fAcorn, rewardGem: finalData.fGem, state: 'exploring', team: selectedTeam.map(y=>y.id), marker: selfRef.add.text(sx, sy-40, '🎒', {fontSize:'24px'}).setOrigin(0.5).setDepth(1600) };
@@ -895,8 +941,7 @@ function create() {
     let shopBg = this.add.rectangle(0, 0, 600, 450, 0x2d3436, 0.95).setStrokeStyle(4, 0xf39c12).setInteractive();
     
     let closeBtn = this.add.text(260, -200, '✖', { fontSize: '28px' }).setInteractive();
-    closeBtn.on('pointerdown', (p) => {
-        if (p && p.manager) p.manager.ignoreEvents = true; 
+    closeBtn.on('pointerdown', () => {
         shopPanel.setVisible(false);
     });
     
@@ -910,12 +955,11 @@ function create() {
         shopPanel.add(this.add.text(120, rowY, priceTxt, { fontSize:'16px', fill:'#f1c40f' }).setOrigin(0.5));
         
         let buyBtn = this.add.text(220, rowY, `[ ${t('buy')} ]`, { fontSize:'16px', fill:'#55efc4' }).setInteractive();
-        buyBtn.on('pointerdown', (p) => { 
-            if (p && p.manager) p.manager.ignoreEvents = true; 
-            activeShopItem = item; 
-            shopPanel.setVisible(false); 
-            uiBuildCancel.setVisible(true); 
-            updateUI(); 
+        buyBtn.on('pointerdown', () => {
+            activeShopItem = item;
+            shopPanel.setVisible(false);
+            uiBuildCancel.setVisible(true);
+            updateUI();
         });
         shopPanel.add(buyBtn);
     });
@@ -1017,9 +1061,8 @@ function create() {
                     let isMilk = Math.random() > 0.5;
                     affectionBubble = selfRef.add.text(targetPool.screenX, targetPool.screenY - 50, isMilk ? '🍼' : '🍡', {fontSize:'24px', backgroundColor:'#fff', padding:{x:5,y:5}}).setOrigin(0.5).setInteractive().setDepth(2000);
                     
-                    affectionBubble.on('pointerdown', (p) => {
-                        if (p && p.manager) p.manager.ignoreEvents = true;
-                        affectionBubble.setVisible(false); 
+                    affectionBubble.on('pointerdown', () => {
+                        affectionBubble.setVisible(false);
                         
                         dbEntry.affection++; score += 50; updateUI(); 
                         showFloatingText(targetPool.screenX, targetPool.screenY - 60, '❤️', '#ff7675'); 
@@ -1154,18 +1197,19 @@ function update() {
                 spr.setPosition(sx, sy).setDepth(x+y).setVisible(true);
                 activeTiles.push(spr);
                 
-                if (tile.status === -6) spr.setTexture('cliff').setOrigin(0.5, 0);
-                else if (tile.status === -2) spr.setTexture('mountain').setOrigin(0.5, 0.9); 
+                if (tile.status === -7) spr.setTexture('ocean').setOrigin(0.5, 0);
+                else if (tile.status === -6) spr.setTexture('cliff').setOrigin(0.5, 0);
+                else if (tile.status === -2) spr.setTexture('mountain').setOrigin(0.5, 0.9);
                 else if (tile.status === -3) spr.setTexture('river').setOrigin(0.5, 0);
                 else if (tile.status === -4) spr.setTexture('waterfall').setOrigin(0.5, 0);
                 else spr.setTexture((x+y)%2===0 ? 'grass1' : 'grass2').setOrigin(0.5, 0);
             }
 
-            if (!tile.unlocked && fogPool.length > 0) {
+            if (!tile.unlocked && tile.status !== -7 && fogPool.length > 0) {
                 let fog = fogPool.pop(); fog.setPosition(sx, sy).setDepth(x+y+0.5).setVisible(true); activeFogs.push(fog);
             }
 
-            if (!tile.unlocked && tile.isAdj && tile.status !== -5 && tile.status !== -6 && signPool.length > 0) {
+            if (!tile.unlocked && tile.isAdj && tile.status !== -5 && tile.status !== -6 && tile.status !== -7 && signPool.length > 0) {
                 let sign = signPool.pop(); sign.setPosition(sx, sy-10).setDepth(x+y+0.6).setVisible(true); activeSigns.push(sign);
             }
 
