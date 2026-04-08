@@ -17,7 +17,7 @@ let isGameLoaded = false;
 
 let gridSize = 250; 
 const centerGrid = Math.floor(gridSize / 2); 
-const halfWidth = 32, halfHeight = 16, tileThickness = 3;
+const halfWidth = 32, halfHeight = 16, tileThickness = 0;
 const offsetX = gridSize * halfWidth, offsetY = 0; 
 const SAVE_KEY = 'yokai_hotspring_save_v1_5';
 
@@ -101,7 +101,7 @@ function preload() {
     draw3DTile('river', 0x3498db, 0x2980b9, 0x1f3a93, true); draw3DTile('waterfall', 0x74b9ff, 0x0984e3, 0x0652dd, true);
     draw3DTile('ocean', 0x0984e3, 0x0652dd, 0x023e8a, true);
     draw3DTile('cliff', 0x2d3436, 0x1e272e, 0x000000);
-    g.fillStyle(0x000000, 0.75); g.beginPath(); g.moveTo(32, 0); g.lineTo(64, 16); g.lineTo(32, 32); g.lineTo(0, 16); g.closePath(); g.fillPath(); g.generateTexture('fog', 64, 32); g.clear();
+    g.fillStyle(0x000000, 0.45); g.beginPath(); g.moveTo(32, 0); g.lineTo(64, 16); g.lineTo(32, 32); g.lineTo(0, 16); g.closePath(); g.fillPath(); g.generateTexture('fog', 64, 32); g.clear();
 
     g.fillStyle(0x2c3e50, 1); g.beginPath(); g.moveTo(32, 90); g.lineTo(64, 74); g.lineTo(40, 20); g.lineTo(32, 0); g.closePath(); g.fillPath();
     g.fillStyle(0x34495e, 1); g.beginPath(); g.moveTo(32, 90); g.lineTo(0, 74); g.lineTo(24, 20); g.lineTo(32, 0); g.closePath(); g.fillPath();
@@ -213,8 +213,8 @@ function create() {
                     let tileStatus = 0;
                     let isEdge = dist > r - 1.5;
                     if (!isEdge) {
-                        if (rand < 0.10) tileStatus = -2;
-                        else if (rand < 0.16) tileStatus = -3;
+                        if (rand < 0.04) tileStatus = -2;
+                        else if (rand < 0.07) tileStatus = -3;
                     }
                     let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 3 && Math.abs(ty - icy) <= 3;
                     if (isStartCenter) tileStatus = 0; // keep center clear
