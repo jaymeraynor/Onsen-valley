@@ -36,6 +36,9 @@ canvas {
     user-select: none;
     letter-spacing: 0.05em;
     animation: loading-pulse 0.8s ease-in-out infinite alternate;
+    -webkit-tap-highlight-color: rgba(255,255,255,0.3);
+    touch-action: manipulation;
+    padding: 16px 24px;
 }
 @keyframes loading-pulse {
     from { opacity: 1; }

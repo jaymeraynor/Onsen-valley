@@ -256,7 +256,11 @@ function create() {
 
         if (loadEnterBtn) loadEnterBtn.style.display = 'block';
 
-        let enterHandler = () => {
+        let entered = false;
+        let enterHandler = (e) => {
+            if (entered) return;
+            entered = true;
+            if (e && e.preventDefault) e.preventDefault();
             isGameLoaded = true;
             if (userSettings.music) {
                 if (soundWaterfall && !soundWaterfall.isPlaying) soundWaterfall.play();
@@ -269,7 +273,10 @@ function create() {
                 setTimeout(() => { if (loadScreen.parentNode) loadScreen.parentNode.removeChild(loadScreen); }, 1000);
             }
         };
-        if (loadEnterBtn) loadEnterBtn.addEventListener('click', enterHandler, { once: true });
+        if (loadEnterBtn) {
+            loadEnterBtn.addEventListener('touchstart', enterHandler, { once: true, passive: false });
+            loadEnterBtn.addEventListener('click', enterHandler, { once: true });
+        }
     });
 
     function updateAdjacency() {
@@ -349,7 +356,7 @@ function create() {
         let closeBtn = selfRef.add.text(170, -150, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
         closeBtn.on('pointerdown', (p) => { 
-            p.stopPropagation(); 
+            if (p && p.manager) p.manager.ignoreEvents = true; 
             selfRef.time.delayedCall(10, () => { if(settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; } });
         });
         
@@ -429,7 +436,7 @@ function create() {
         let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
         closeBtn.on('pointerdown', (p) => { 
-            p.stopPropagation(); 
+            if (p && p.manager) p.manager.ignoreEvents = true; 
             selfRef.time.delayedCall(10, () => { if(dexPanel) { dexPanel.destroy(true); dexPanel = null; } });
         });
         
@@ -455,7 +462,7 @@ function create() {
         let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
         closeBtn.on('pointerdown', (p) => { 
-            p.stopPropagation(); 
+            if (p && p.manager) p.manager.ignoreEvents = true; 
             selfRef.time.delayedCall(10, () => { if(rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; } });
         });
         
@@ -737,11 +744,11 @@ function create() {
             let eBtnNo = selfRef.add.text(100, 130, '[ 放棄 ]', { fontSize: '20px', fill: '#ff7675', backgroundColor: '#c0392b', padding: {x:15,y:8} }).setOrigin(0.5).setInteractive();
             
             eBtnNo.on('pointerdown', (p) => { 
-                p.stopPropagation(); 
+                if (p && p.manager) p.manager.ignoreEvents = true; 
                 selfRef.time.delayedCall(10, () => { if(expedPanel) { expedPanel.destroy(); expedPanel = null; } });
             });
             eBtnYes.on('pointerdown', (p) => {
-                p.stopPropagation();
+                if (p && p.manager) p.manager.ignoreEvents = true;
                 let finalData = updateExpedStats();
                 selectedTeam.forEach(y => { y.state = 'expedition'; });
                 activeExpedition = { gx: clickGx, gy: clickGy, sx: sx, sy: sy, dist: dist, timeTotal: finalData.fTime, timeLeft: finalData.fTime, rewardAcorn: finalData.fAcorn, rewardGem: finalData.fGem, state: 'exploring', team: selectedTeam.map(y=>y.id), marker: selfRef.add.text(sx, sy-40, '🎒', {fontSize:'24px'}).setOrigin(0.5).setDepth(1600) };
@@ -865,7 +872,7 @@ function create() {
     
     let closeBtn = this.add.text(260, -200, '✖', { fontSize: '28px' }).setInteractive();
     closeBtn.on('pointerdown', (p) => {
-        p.stopPropagation(); 
+        if (p && p.manager) p.manager.ignoreEvents = true; 
         shopPanel.setVisible(false);
     });
     
@@ -880,7 +887,7 @@ function create() {
         
         let buyBtn = this.add.text(220, rowY, `[ ${t('buy')} ]`, { fontSize:'16px', fill:'#55efc4' }).setInteractive();
         buyBtn.on('pointerdown', (p) => { 
-            p.stopPropagation(); 
+            if (p && p.manager) p.manager.ignoreEvents = true; 
             activeShopItem = item; 
             shopPanel.setVisible(false); 
             uiBuildCancel.setVisible(true); 
@@ -987,7 +994,7 @@ function create() {
                     affectionBubble = selfRef.add.text(targetPool.screenX, targetPool.screenY - 50, isMilk ? '🍼' : '🍡', {fontSize:'24px', backgroundColor:'#fff', padding:{x:5,y:5}}).setOrigin(0.5).setInteractive().setDepth(2000);
                     
                     affectionBubble.on('pointerdown', (p) => {
-                        p.stopPropagation();
+                        if (p && p.manager) p.manager.ignoreEvents = true;
                         affectionBubble.setVisible(false); 
                         
                         dbEntry.affection++; score += 50; updateUI(); 
