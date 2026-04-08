@@ -562,15 +562,27 @@ function create() {
     function syncRealTime() {
         if (!btnTimeToggle) return;
         let isNightTime = false;
+        let overlayAlpha = 0;
         if (timeMode === 'auto') {
             const now = new Date(); const hour = now.getHours(); const min = now.getMinutes().toString().padStart(2, '0');
             btnTimeToggle.setText(t('timeAuto')); btnTimeToggle.setBackgroundColor('#34495e'); uiTime.setText(`🕐 ${hour}:${min}`);
-            if (hour >= 18 || hour < 6) { nightOverlay.fillAlpha = 0.7; isNightTime = true; } else if (hour === 17 || hour === 6) { nightOverlay.fillAlpha = 0.3; isNightTime = true; } else { nightOverlay.fillAlpha = 0; }
+            if (hour >= 18 || hour < 6) { overlayAlpha = 0.7; isNightTime = true; }
+            else if (hour === 17 || hour === 6) { overlayAlpha = 0.3; isNightTime = true; }
         } else if (timeMode === 'day') {
-            btnTimeToggle.setText(t('timeDay')); btnTimeToggle.setBackgroundColor('#e67e22'); uiTime.setText('☀️ --:--'); nightOverlay.fillAlpha = 0; isNightTime = false;
+            btnTimeToggle.setText(t('timeDay')); btnTimeToggle.setBackgroundColor('#e67e22'); uiTime.setText('☀️ --:--');
         } else if (timeMode === 'night') {
-            btnTimeToggle.setText(t('timeNight')); btnTimeToggle.setBackgroundColor('#2c3e50'); uiTime.setText('🌙 --:--'); nightOverlay.fillAlpha = 0.7; isNightTime = true;
+            btnTimeToggle.setText(t('timeNight')); btnTimeToggle.setBackgroundColor('#2c3e50'); uiTime.setText('🌙 --:--');
+            overlayAlpha = 0.7; isNightTime = true;
         }
+        nightOverlay.fillAlpha = overlayAlpha;
+        // Sync body + html + canvas background so everything outside canvas matches
+        let bgColor = isNightTime
+            ? (overlayAlpha >= 0.7 ? '#03153a' : '#062a5c')
+            : '#0652dd';
+        document.body.style.backgroundColor = bgColor;
+        document.documentElement.style.backgroundColor = bgColor;
+        let canvasEl = document.querySelector('canvas');
+        if (canvasEl) canvasEl.style.backgroundColor = bgColor;
         decors.forEach(d => { if(d.light) d.light.setVisible(isNightTime); });
         decors.forEach(d => { if(d.isWall && d.level === 3 && d.light) d.light.setVisible(isNightTime); });
 
