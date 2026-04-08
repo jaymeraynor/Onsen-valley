@@ -49,6 +49,11 @@ let mapData = [];
 function getBuildTime(level) { let b = Math.floor(10 * Math.pow(1.8, level - 1)); return staff.foreman ? Math.floor(b*0.5) : b; } 
 function t(key) { return i18n[currentLang][key] || key; }
 
+// HTML UI helpers — update fixed overlay elements without touching Phaser camera
+function hEl(id) { return document.getElementById(id); }
+function hText(id, txt) { let e = hEl(id); if (e) e.textContent = txt; }
+function hShow(id, v)   { let e = hEl(id); if (e) e.style.display = v ? '' : 'none'; }
+
 // [共用模組] 提升為全域函式，方便所有新模組呼叫
 function showFloatingText(x, y, text, color, fontSize = '18px', isFixed = false) {
     if (!userSettings.vfx && !isFixed) return; 
@@ -350,7 +355,7 @@ function create() {
         // Show fixed HTML buttons now that game is ready
         let htmlUi = document.getElementById('html-ui');
         if (htmlUi) htmlUi.style.display = 'block';
-        if (activeExpedition) uiExpedTracker.setVisible(true);
+        if (activeExpedition) hShow('hbtn-exped', true);
         if (userSettings.music) {
             if (soundWaterfall && !soundWaterfall.isPlaying) soundWaterfall.play();
             if (soundDay && !soundDay.isPlaying) soundDay.play();
@@ -399,15 +404,13 @@ function create() {
         WeatherSystem.init(selfRef);
     }
 
-    uiScore = this.add.text(20, 15, '', { fontSize: '20px', fill: '#ffeaa7', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setDepth(2000).setScrollFactor(0);
-    uiPremium = this.add.text(20, 40, '', { fontSize: '20px', fill: '#81ecec', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setDepth(2000).setScrollFactor(0);
-    uiPlayerLvl = this.add.text(300, 15, '', { fontSize: '18px', fill: '#55efc4', fontStyle: 'bold', backgroundColor: 'rgba(45,52,54,0.8)', padding: {x:8,y:4} }).setDepth(2000).setScrollFactor(0);
-    uiTime = this.add.text(720, 15, '🕐', { fontSize: '16px', fill: '#fff' }).setDepth(2000).setScrollFactor(0);
-    btnTimeToggle = this.add.text(720, 45, '', { fontSize: '14px', fill: '#fff', backgroundColor: '#34495e', padding: {x:10, y:5} }).setInteractive().setDepth(2000).setScrollFactor(0);
-    btnTimeToggle.on('pointerdown', () => { if(!isGameLoaded) return; if (timeMode === 'auto') timeMode = 'day'; else if (timeMode === 'day') timeMode = 'night'; else timeMode = 'auto'; syncRealTime(); });
-
-    let btnTopup = this.add.text(180, 42, '➕', { fontSize: '14px', backgroundColor: '#e84393', padding: { x: 5, y: 3 } }).setInteractive().setDepth(2000).setScrollFactor(0);
-    btnTopup.on('pointerdown', () => { if(!isGameLoaded) return; premiumCoin += 50; updateUI(); showFloatingText(220, 40, '+50 💎', '#81ecec', '18px', true); });
+    // Display elements replaced by HTML overlay — keep objects invisible, logic stays intact
+    uiScore    = this.add.text(-9999,-9999,'',{fontSize:'1px'}).setDepth(2000).setScrollFactor(0).setVisible(false);
+    uiPremium  = this.add.text(-9999,-9999,'',{fontSize:'1px'}).setDepth(2000).setScrollFactor(0).setVisible(false);
+    uiPlayerLvl= this.add.text(-9999,-9999,'',{fontSize:'1px'}).setDepth(2000).setScrollFactor(0).setVisible(false);
+    uiTime     = this.add.text(-9999,-9999,'',{fontSize:'1px'}).setDepth(2000).setScrollFactor(0).setVisible(false);
+    btnTimeToggle = this.add.text(-9999,-9999,'',{fontSize:'1px'}).setInteractive().setDepth(2000).setScrollFactor(0).setVisible(false);
+    btnTimeToggle.on('pointerdown', () => { if(!isGameLoaded) return; if (timeMode==='auto') timeMode='day'; else if (timeMode==='day') timeMode='night'; else timeMode='auto'; syncRealTime(); });
 
     // uiMode, btnSettings, btnDex moved to HTML overlay — kept invisible here for internal routing
     uiMode = this.add.text(-9999, -9999, '', { fontSize: '16px' }).setInteractive().setDepth(2000).setScrollFactor(0).setVisible(false);
@@ -415,7 +418,7 @@ function create() {
         if(!isGameLoaded) return;
         isBuildMode = !isBuildMode;
         activeShopItem = null;
-        uiBuildCancel.setVisible(false);
+        hShow('hud-cancel', false);
         // Sync HTML build button colour
         let hBtn = document.getElementById('hbtn-build');
         if (hBtn) {
@@ -431,27 +434,31 @@ function create() {
     let btnDex = this.add.text(-9999, -9999, '', { fontSize: '16px' }).setInteractive().setDepth(2000).setScrollFactor(0).setVisible(false);
     btnDex.on('pointerdown', () => { if(isGameLoaded) openPokedex(); });
 
-    uiQuest = this.add.text(20, 195, '📜 ...', { fontSize: '14px', fill: '#b2bec3', backgroundColor: 'rgba(0,0,0,0.8)', padding: { x: 5, y: 5 } }).setDepth(2000).setScrollFactor(0);
-    uiExpedTracker = this.add.text(20, 240, '', { fontSize: '16px', fill: '#a29bfe', backgroundColor: 'rgba(0,0,0,0.8)', padding: { x: 8, y: 8 } }).setInteractive().setDepth(2000).setScrollFactor(0).setVisible(false);
-    uiExpedTracker.on('pointerdown', () => {
-        if(!isGameLoaded) return;
-        if(activeExpedition && activeExpedition.state === 'done') {
+    // Quest, expedition, cancel, save — all replaced by HTML; Phaser objects kept invisible
+    uiQuest        = this.add.text(-9999,-9999,'',{fontSize:'1px'}).setDepth(2000).setScrollFactor(0).setVisible(false);
+    uiExpedTracker = this.add.text(-9999,-9999,'',{fontSize:'1px'}).setInteractive().setDepth(2000).setScrollFactor(0).setVisible(false);
+    uiBuildCancel  = this.add.text(-9999,-9999,'',{fontSize:'1px'}).setInteractive().setDepth(3000).setScrollFactor(0).setVisible(false);
+    uiSaveSync     = this.add.text(-9999,-9999,'',{fontSize:'1px'}).setDepth(4000).setScrollFactor(0).setVisible(false);
+
+    // Expedition collect / pan logic — called by HTML button via GameAPI.openExped()
+    function doExpedAction() {
+        if (!isGameLoaded) return;
+        if (activeExpedition && activeExpedition.state === 'done') {
             score += activeExpedition.rewardAcorn; premiumCoin += activeExpedition.rewardGem;
-            showFloatingText(480, 270, `🎉\n+${activeExpedition.rewardAcorn}🌰\n+${activeExpedition.rewardGem}💎`, '#fbc531', '28px', true);
-            selfRef.tweens.killTweensOf(activeExpedition.marker); 
+            showFloatingText(selfRef.scale.width/2, selfRef.scale.height/2 - 60,
+                `🎉\n+${activeExpedition.rewardAcorn}🌰\n+${activeExpedition.rewardGem}💎`, '#fbc531', '28px', true);
+            selfRef.tweens.killTweensOf(activeExpedition.marker);
             activeExpedition.marker.destroy();
             activeExpedition.team.forEach(id => { let y = ownedYokais.find(oy => oy.id === id); if (y) y.state = 'idle'; });
-            activeExpedition = null; uiExpedTracker.setVisible(false); updateUI();
+            activeExpedition = null;
+            hShow('hbtn-exped', false);
+            updateUI();
         } else if (activeExpedition) {
-            let vSx = offsetX + (activeExpedition.gx - activeExpedition.gy) * halfWidth; let vSy = offsetY + (activeExpedition.gx + activeExpedition.gy) * halfHeight;
+            let vSx = offsetX + (activeExpedition.gx - activeExpedition.gy) * halfWidth;
+            let vSy = offsetY + (activeExpedition.gx + activeExpedition.gy) * halfHeight;
             selfRef.cameras.main.pan(vSx, vSy, 800, 'Sine.easeInOut');
         }
-    });
-
-    uiBuildCancel = this.add.text(480, 70, '🚫 Cancel', { fontSize: '18px', fill: '#fff', backgroundColor: '#c0392b', padding: {x:15, y:10} }).setOrigin(0.5).setInteractive().setDepth(3000).setScrollFactor(0).setVisible(false);
-    uiBuildCancel.on('pointerdown', () => { if(!isGameLoaded) return; activeShopItem = null; uiBuildCancel.setVisible(false); updateUI(); });
-    
-    uiSaveSync = this.add.text(950, 530, '💾 Saving...', { fontSize: '12px', fill: '#bdc3c7', backgroundColor: 'rgba(0,0,0,0.5)', padding: {x:5, y:3} }).setOrigin(1, 1).setDepth(4000).setScrollFactor(0).setVisible(false);
+    }
 
     function openSettings() {
         if (settingsPanel) {
@@ -614,13 +621,16 @@ function create() {
         let overlayAlpha = 0;
         if (timeMode === 'auto') {
             const now = new Date(); const hour = now.getHours(); const min = now.getMinutes().toString().padStart(2, '0');
-            btnTimeToggle.setText(t('timeAuto')); btnTimeToggle.setBackgroundColor('#34495e'); uiTime.setText(`🕐 ${hour}:${min}`);
+            hText('hud-time', `🕐 ${hour}:${min}`);
+            let tb = hEl('hbtn-time'); if (tb) { tb.textContent = t('timeAuto'); tb.style.background = '#34495e'; }
             if (hour >= 18 || hour < 6) { overlayAlpha = 0.7; isNightTime = true; }
             else if (hour === 17 || hour === 6) { overlayAlpha = 0.3; isNightTime = true; }
         } else if (timeMode === 'day') {
-            btnTimeToggle.setText(t('timeDay')); btnTimeToggle.setBackgroundColor('#e67e22'); uiTime.setText('☀️ --:--');
+            hText('hud-time', '☀️ --:--');
+            let tb = hEl('hbtn-time'); if (tb) { tb.textContent = t('timeDay'); tb.style.background = '#e67e22'; }
         } else if (timeMode === 'night') {
-            btnTimeToggle.setText(t('timeNight')); btnTimeToggle.setBackgroundColor('#2c3e50'); uiTime.setText('🌙 --:--');
+            hText('hud-time', '🌙 --:--');
+            let tb = hEl('hbtn-time'); if (tb) { tb.textContent = t('timeNight'); tb.style.background = '#2c3e50'; }
             overlayAlpha = 0.7; isNightTime = true;
         }
         nightOverlay.fillAlpha = overlayAlpha;
@@ -650,7 +660,7 @@ function create() {
 
     this.time.addEvent({ delay: 5000, loop: true, callback: () => {
         if (!isGameLoaded) return;
-        uiSaveSync.setVisible(true);
+        hShow('hud-save', true);
         let saveData = {
             tutorialStep: tutorialStep,
             score: score, premiumCoin: premiumCoin, playerLevel: playerLevel, playerExp: playerExp, questStats: questStats, currentQuest: currentQuest, ownedYokais: ownedYokais, unlockedIslands: unlockedIslands,
@@ -661,7 +671,7 @@ function create() {
             activeExpedition: activeExpedition ? { gx: activeExpedition.gx, gy: activeExpedition.gy, sx: activeExpedition.sx, sy: activeExpedition.sy, dist: activeExpedition.dist, timeTotal: activeExpedition.timeTotal, timeLeft: activeExpedition.timeLeft, rewardAcorn: activeExpedition.rewardAcorn, rewardGem: activeExpedition.rewardGem, state: activeExpedition.state, team: activeExpedition.team } : null
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
-        selfRef.time.delayedCall(1000, () => uiSaveSync.setVisible(false));
+        selfRef.time.delayedCall(1000, () => hShow('hud-save', false));
     }});
 
     function showGuideFinger() {
@@ -736,15 +746,21 @@ function create() {
     };
 
     function updateUI() {
-        if (!currentQuest) return; 
-        uiScore.setText(`${t('acorns')}: ${score} 🌰`); uiPremium.setText(`${t('gems')}: ${premiumCoin} 💎`);
-        uiPlayerLvl.setText(`${t('lvl')} ${playerLevel} (EXP: ${playerExp}/${getExpRequired(playerLevel)})`);
-        btnDex.setText(t('btnDex'));
-        if (activeShopItem) uiMode.setText(`🪑: ${activeShopItem.name[currentLang]}`).setBackgroundColor('#8e44ad');
-        else uiMode.setText(isBuildMode ? t('modeBuild') : t('modeDemolish'));
-        if (currentQuest.type === 'serve') uiQuest.setText(`📜: 任務 (${questStats.yokaiServed}/${currentQuest.target})`);
-        else if (currentQuest.type === 'build') uiQuest.setText(`📜: 任務 (${questStats.buildCount}/${currentQuest.target})`);
-        else uiQuest.setText(`📜: ${currentQuest.desc}`);
+        if (!currentQuest) return;
+        // --- HTML HUD updates (fixed overlay, immune to camera zoom) ---
+        hText('v-score', score.toLocaleString());
+        hText('v-gems',  premiumCoin);
+        hText('hud-lvl', `${t('lvl')} ${playerLevel}  (EXP: ${playerExp} / ${getExpRequired(playerLevel)})`);
+        let questTxt = currentQuest.type === 'serve'  ? `📜 任務 (${questStats.yokaiServed}/${currentQuest.target})` :
+                       currentQuest.type === 'build'  ? `📜 任務 (${questStats.buildCount}/${currentQuest.target})` :
+                                                         `📜 ${currentQuest.desc}`;
+        hText('hud-quest', questTxt);
+        // Build button: colour + label
+        let hBld = hEl('hbtn-build');
+        if (hBld) {
+            if (activeShopItem) { hBld.textContent = `🪑 ${activeShopItem.name[currentLang]}`; hBld.className = 'hbtn hbtn-purple'; }
+            else { hBld.textContent = isBuildMode ? '🔨 建造/升級' : '🔧 升級模式'; hBld.className = 'hbtn ' + (isBuildMode ? 'hbtn-green' : 'hbtn-red'); }
+        }
     }
 
     selfRef.checkQuests = function() {
@@ -808,7 +824,7 @@ function create() {
             }
             questStats.decorCount++;
             selfRef.checkQuests();
-        } else { activeShopItem = null; uiBuildCancel.setVisible(false); showFloatingText(p.worldX, p.worldY, '資金不足', '#ff7675'); }
+        } else { activeShopItem = null; hShow('hud-cancel', false); showFloatingText(p.worldX, p.worldY, '資金不足', '#ff7675'); }
     }
 
     this.input.on('pointerdown', (p) => {
@@ -916,7 +932,7 @@ function create() {
                 selectedTeam.forEach(y => { y.state = 'expedition'; });
                 activeExpedition = { gx: clickGx, gy: clickGy, sx: sx, sy: sy, dist: dist, timeTotal: finalData.fTime, timeLeft: finalData.fTime, rewardAcorn: finalData.fAcorn, rewardGem: finalData.fGem, state: 'exploring', team: selectedTeam.map(y=>y.id), marker: selfRef.add.text(sx, sy-40, '🎒', {fontSize:'24px'}).setOrigin(0.5).setDepth(1600) };
                 selfRef.tweens.add({ targets: activeExpedition.marker, y: sy-50, yoyo: true, repeat: -1, duration: 600 });
-                uiExpedTracker.setVisible(true); showFloatingText(480, 270, `探索隊出發！`, '#a29bfe', '24px', true);
+                hShow('hbtn-exped', true); showFloatingText(selfRef.scale.width/2, selfRef.scale.height/2, `探索隊出發！`, '#a29bfe', '24px', true);
                 closeExpedPanel(); updateUI();
             });
             expedPanelBtns.push(eBtnYes, eBtnNo);
@@ -1055,7 +1071,7 @@ function create() {
                 activeShopItem = item;
                 shopPanel.setVisible(false);
                 shopPanelBtns.forEach(b => b.setVisible(false));
-                uiBuildCancel.setVisible(true);
+                hShow('hud-cancel', true);
                 updateUI();
             });
             shopPanelBtns.push(buyBtn);
@@ -1245,15 +1261,14 @@ function create() {
         openShop:     () => btnShopUI.emit('pointerdown'),
         openRoster:   () => btnRosterUI.emit('pointerdown'),
         openFriend:   () => btnFriend.emit('pointerdown'),
+        toggleTime:   () => btnTimeToggle.emit('pointerdown'),
+        topup:        () => { if (!isGameLoaded) return; premiumCoin += 50; updateUI(); showFloatingText(selfRef.scale.width/2, 80, '+50 💎', '#81ecec', '18px', true); },
+        cancelBuild:  () => { if (!isGameLoaded) return; activeShopItem = null; hShow('hud-cancel', false); updateUI(); },
+        openExped:    () => doExpedAction(),
     };
 
     // --- [視窗縮放自動重新定位 UI] ---
     function repositionUI(W, H) {
-        uiTime.setPosition(W - 240, 15);
-        btnTimeToggle.setPosition(W - 240, 45);
-        uiBuildCancel.setPosition(W / 2, 70);
-        uiSaveSync.setPosition(W - 10, H - 10);
-        uiPlayerLvl.setPosition(W / 2 - 130, 15);
         // Recentre the oversized overlay and ocean bg to screen centre
         nightOverlay.setPosition(W / 2, H / 2);
         oceanBg.setPosition(W / 2, H / 2);
@@ -1287,8 +1302,8 @@ function update() {
         activeExpedition.timeLeft -= 1/60; 
         if (activeExpedition.timeLeft <= 0) {
             activeExpedition.state = 'done'; activeExpedition.marker.setText('🎁'); 
-            uiExpedTracker.setText('🎁').setBackgroundColor('rgba(46, 204, 113, 0.8)');
-        } else { uiExpedTracker.setText(`🎒 ${Math.ceil(activeExpedition.timeLeft)}s`).setBackgroundColor('rgba(0,0,0,0.7)'); }
+            hText('hbtn-exped', '🎁 領獎！');
+        } else { hText('hbtn-exped', `🎒 ${Math.ceil(activeExpedition.timeLeft)}s`); }
     }
 
     while(activeTiles.length > 0) { let t = activeTiles.pop(); t.setVisible(false); tilePool.push(t); }

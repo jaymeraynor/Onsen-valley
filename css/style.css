@@ -148,6 +148,88 @@ canvas {
 .hbtn-teal   { background: #16a085; }
 .hbtn-indigo { background: #2980b9; }
 .hbtn-red    { background: #c0392b; }
+.hbtn-pink   { background: #e84393; padding: 3px 7px; font-size: 12px; }
+
+/* ── HUD 元素定位 ─────────────────────────────── */
+
+/* 資源：左上 */
+#hud-res {
+    position: fixed;
+    top: 12px; left: 12px;
+    display: flex; flex-direction: column; gap: 4px;
+    pointer-events: all;
+    color: #fff;
+    font-size: 15px;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px #000;
+}
+#hud-gems { display: flex; align-items: center; gap: 6px; }
+
+/* 玩家等級：頂部中央 */
+#hud-lvl {
+    position: fixed;
+    top: 12px; left: 50%; transform: translateX(-50%);
+    color: #55efc4;
+    font-size: 15px;
+    font-weight: bold;
+    background: rgba(45,52,54,0.85);
+    padding: 5px 12px;
+    border-radius: 5px;
+    white-space: nowrap;
+    text-shadow: 1px 1px 3px #000;
+    pointer-events: none;
+}
+
+/* 時間：右上 */
+#hud-time-wrap {
+    position: fixed;
+    top: 12px; right: 12px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+    pointer-events: all;
+}
+#hud-time {
+    color: #fff;
+    font-size: 15px;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px #000;
+    pointer-events: none;
+}
+
+/* 任務 + 遠征：左側按鈕下方 */
+#hud-bl {
+    position: fixed;
+    top: 210px; left: 12px;
+    display: flex; flex-direction: column; gap: 6px;
+    pointer-events: all;
+}
+#hud-quest {
+    color: #b2bec3;
+    font-size: 13px;
+    background: rgba(0,0,0,0.75);
+    padding: 5px 10px;
+    border-radius: 5px;
+    pointer-events: none;
+    max-width: 180px;
+}
+
+/* 存檔提示：右下 */
+#hud-save {
+    position: fixed;
+    bottom: 10px; right: 10px;
+    color: #bdc3c7;
+    font-size: 12px;
+    background: rgba(0,0,0,0.6);
+    padding: 4px 8px;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+/* 建造取消：頂部中央 */
+#hud-cancel {
+    position: fixed;
+    top: 65px; left: 50%; transform: translateX(-50%);
+    pointer-events: all;
+}
 
 /* 載入畫面 — 飄落的櫻花 */
 .loading-sakura {
