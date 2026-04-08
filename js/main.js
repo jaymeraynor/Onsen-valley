@@ -152,6 +152,7 @@ function create() {
     }
 
     // --- [史詩級動態載入畫面：VFX 魔術] ---
+    let loadOverlay = this.add.rectangle(400, 300, 800, 600, 0x2d3436).setDepth(99997).setScrollFactor(0);
     let loadBg = this.add.image(400, 300, 'loading_bg').setDepth(99998).setScrollFactor(0);
     // 確保圖片載入後能等比縮放覆蓋畫面
     let scaleX = 800 / (loadBg.width || 800); 
@@ -290,12 +291,12 @@ function create() {
                 syncRealTime(); 
             }
             
-            this.tweens.add({ 
-                targets: [loadBg, loadText], alpha: 0, duration: 1000, 
-                onComplete: () => { 
+            this.tweens.add({
+                targets: [loadOverlay, loadBg, loadText], alpha: 0, duration: 1000,
+                onComplete: () => {
                     selfRef.tweens.killTweensOf(loadBg); selfRef.tweens.killTweensOf(loadText);
                     loadSteam.destroy(); loadSakura.destroy();
-                    loadBg.destroy(); loadText.destroy(); 
+                    loadOverlay.destroy(); loadBg.destroy(); loadText.destroy();
                 }
             });
         });
