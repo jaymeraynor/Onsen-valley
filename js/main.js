@@ -17,7 +17,7 @@ let isGameLoaded = false;
 
 let gridSize = 250; 
 const centerGrid = Math.floor(gridSize / 2); 
-const halfWidth = 32, halfHeight = 16, tileThickness = 8; 
+const halfWidth = 32, halfHeight = 16, tileThickness = 3;
 const offsetX = gridSize * halfWidth, offsetY = 0; 
 const SAVE_KEY = 'yokai_hotspring_save_v1_5';
 
@@ -350,10 +350,6 @@ function create() {
 
     // Ocean background — fills any gaps in tile pool, always shows as ocean
     this.add.rectangle(480, 270, 960, 540, 0x0652dd, 1).setDepth(-10).setScrollFactor(0);
-    // Subtle wave grid overlay for the ocean background
-    let waveG = this.add.graphics().setDepth(-9).setScrollFactor(0);
-    for(let wy=0; wy<540; wy+=20) { waveG.lineStyle(1, 0x0984e3, 0.3); waveG.beginPath(); waveG.moveTo(0, wy); waveG.lineTo(960, wy); waveG.strokePath(); }
-    for(let wx=0; wx<960; wx+=20) { waveG.lineStyle(1, 0x0984e3, 0.3); waveG.beginPath(); waveG.moveTo(wx, 0); waveG.lineTo(wx, 540); waveG.strokePath(); }
 
     for(let i=0; i<1500; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
     for(let i=0; i<1500; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
