@@ -310,6 +310,10 @@ function create() {
             generateQuest();
         }
         setLoadProgress(70, '建立世界...');
+        // Centre camera on main island after map is ready
+        let cx = offsetX + (centerGrid - centerGrid) * halfWidth;
+        let cy = offsetY + (centerGrid + centerGrid) * halfHeight;
+        selfRef.cameras.main.centerOn(cx, cy);
     });
 
     // 自動進入：載入完成後自動開始遊戲，不需玩家點擊
@@ -699,9 +703,6 @@ function create() {
         } else { updateUI(); }
     };
 
-    let centerSx = offsetX + (centerGrid - centerGrid) * halfWidth;
-    let centerSy = offsetY + (centerGrid + centerGrid) * halfHeight;
-    selfRef.cameras.main.centerOn(centerSx, centerSy);
     selfRef.cameras.main.setZoom(1.5);
 
     cursor = this.add.graphics().lineStyle(2, 0xffeaa7, 0.8).setDepth(1600).setVisible(false);

@@ -13,8 +13,7 @@ body {
     touch-action: none;
 }
 canvas {
-    box-shadow: 0 0 40px rgba(0,0,0,0.8);
-    border-radius: 8px;
+    /* box-shadow removed: body and canvas are same ocean colour, shadow just creates a dark box outline */
 }
 #loading-screen {
     position: fixed;
