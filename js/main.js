@@ -62,8 +62,11 @@ const config = {
     type: Phaser.AUTO,
     backgroundColor: '#0652dd',
     scale: {
+        parent: 'game-wrap',
         mode: Phaser.Scale.RESIZE,
-        autoCenter: Phaser.Scale.NO_CENTER
+        autoCenter: Phaser.Scale.NO_CENTER,
+        width: window.innerWidth,
+        height: window.innerHeight
     },
     scene: { preload: preload, create: create, update: update }
 };
@@ -330,10 +333,13 @@ function create() {
             markOceanBorders();
         }
         setLoadProgress(70, '建立世界...');
-        // Centre camera on main island after map is ready
+        // Centre camera on main island and set scroll bounds so the player
+        // can explore the main island without accidentally revealing far-off islands
         let cx = offsetX + (centerGrid - centerGrid) * halfWidth;
         let cy = offsetY + (centerGrid + centerGrid) * halfHeight;
         selfRef.cameras.main.centerOn(cx, cy);
+        // Restrict scrolling to ±1500px from main island centre (about 2× island radius)
+        selfRef.cameras.main.setBounds(cx - 1500, cy - 900, 3000, 1800);
     });
 
     // 自動進入：載入完成後自動開始遊戲，不需玩家點擊
@@ -372,15 +378,17 @@ function create() {
         }
     }
 
-    // Ocean background — fills full canvas including expanded area
-    let oceanBg = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0652dd, 1).setDepth(-10).setScrollFactor(0).setOrigin(0, 0);
+    // Ocean background and night overlay — oversized (8000×5000) rects centred on screen
+    // so they always cover the full canvas regardless of resize timing
+    let W0 = this.scale.width, H0 = this.scale.height;
+    let oceanBg = this.add.rectangle(W0 / 2, H0 / 2, 8000, 5000, 0x0652dd, 1).setDepth(-10).setScrollFactor(0).setOrigin(0.5, 0.5);
 
     for(let i=0; i<1500; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
     for(let i=0; i<1500; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
     for(let i=0; i<150; i++) signPool.push(this.add.text(0,0,'💰', {fontSize:'16px'}).setVisible(false).setOrigin(0.5));
     for(let i=0; i<50; i++) villagePool.push(this.add.text(0,0,'🏯', {fontSize:'32px'}).setVisible(false).setOrigin(0.5));
 
-    nightOverlay = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0a3d62, 0).setDepth(1800).setScrollFactor(0).setOrigin(0.5, 0.5);
+    nightOverlay = this.add.rectangle(W0 / 2, H0 / 2, 8000, 5000, 0x0a3d62, 0).setDepth(1800).setScrollFactor(0).setOrigin(0.5, 0.5);
 
     // [模組化] 初始化天氣系統
     if (typeof WeatherSystem !== 'undefined') {
@@ -1222,8 +1230,9 @@ function create() {
         uiBuildCancel.setPosition(W / 2, 70);
         uiSaveSync.setPosition(W - 10, H - 10);
         uiPlayerLvl.setPosition(W / 2 - 130, 15);
-        nightOverlay.setPosition(W / 2, H / 2).setSize(W + 100, H + 100);
-        oceanBg.setSize(W + 100, H + 100);
+        // Recentre the oversized overlay and ocean bg to screen centre
+        nightOverlay.setPosition(W / 2, H / 2);
+        oceanBg.setPosition(W / 2, H / 2);
     }
     repositionUI(this.scale.width, this.scale.height);
     this.scale.on('resize', (gameSize) => {
