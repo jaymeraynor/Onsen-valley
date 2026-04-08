@@ -9,7 +9,8 @@ let tutorialStep = 0;
 let guideFinger = null; 
 let staff = { promoter: false, foreman: false };
 let selfRef, spawnTimerEvent, nightOverlay;
-let activeShopItem = null, timeMode = 'auto', activeExpedition = null; 
+let isBuildMode = true; // global so HTML UI can read it
+let activeShopItem = null, timeMode = 'auto', activeExpedition = null;
 let ownedYokais = [];
 let unlockedIslands = [0];
 
@@ -146,7 +147,7 @@ function preload() {
 function create() {
     selfRef = this;
     this.input.addPointer(1);
-    let isBuildMode = true;
+    isBuildMode = true; // uses global (so HTML UI can read it)
     // Panel button tracking (buttons added directly to scene for reliable input)
     let dexPanelBtns = [], settingsPanelBtns = [], rosterPanelBtns = [], expedPanelBtns = [], shopPanelBtns = [];
 
@@ -346,6 +347,9 @@ function create() {
     function autoEnter() {
         isGameLoaded = true;
         updateUI();
+        // Show fixed HTML buttons now that game is ready
+        let htmlUi = document.getElementById('html-ui');
+        if (htmlUi) htmlUi.style.display = 'block';
         if (activeExpedition) uiExpedTracker.setVisible(true);
         if (userSettings.music) {
             if (soundWaterfall && !soundWaterfall.isPlaying) soundWaterfall.play();
@@ -405,13 +409,26 @@ function create() {
     let btnTopup = this.add.text(180, 42, '➕', { fontSize: '14px', backgroundColor: '#e84393', padding: { x: 5, y: 3 } }).setInteractive().setDepth(2000).setScrollFactor(0);
     btnTopup.on('pointerdown', () => { if(!isGameLoaded) return; premiumCoin += 50; updateUI(); showFloatingText(220, 40, '+50 💎', '#81ecec', '18px', true); });
 
-    uiMode = this.add.text(20, 80, '', { fontSize: '16px', backgroundColor: '#27ae60', padding: { x: 10, y: 8 } }).setInteractive().setDepth(2000).setScrollFactor(0);
-    uiMode.on('pointerdown', () => { if(!isGameLoaded) return; isBuildMode = !isBuildMode; activeShopItem = null; uiBuildCancel.setVisible(false); if (isBuildMode) uiMode.setBackgroundColor('#27ae60'); else uiMode.setBackgroundColor('#c0392b'); updateUI(); });
-    
-    btnSettings = this.add.text(20, 120, '⚙️ Settings', { fontSize: '14px', backgroundColor: '#34495e', padding: { x: 5, y: 5 } }).setInteractive().setDepth(2000).setScrollFactor(0);
+    // uiMode, btnSettings, btnDex moved to HTML overlay — kept invisible here for internal routing
+    uiMode = this.add.text(-9999, -9999, '', { fontSize: '16px' }).setInteractive().setDepth(2000).setScrollFactor(0).setVisible(false);
+    uiMode.on('pointerdown', () => {
+        if(!isGameLoaded) return;
+        isBuildMode = !isBuildMode;
+        activeShopItem = null;
+        uiBuildCancel.setVisible(false);
+        // Sync HTML build button colour
+        let hBtn = document.getElementById('hbtn-build');
+        if (hBtn) {
+            hBtn.className = 'hbtn ' + (isBuildMode ? 'hbtn-green' : 'hbtn-red');
+            hBtn.textContent = isBuildMode ? '🔨 建造/升級' : '🔧 升級模式';
+        }
+        updateUI();
+    });
+
+    btnSettings = this.add.text(-9999, -9999, '⚙️ Settings', { fontSize: '14px' }).setInteractive().setDepth(2000).setScrollFactor(0).setVisible(false);
     btnSettings.on('pointerdown', () => { if(isGameLoaded) openSettings(); });
 
-    let btnDex = this.add.text(20, 155, '', { fontSize: '16px', backgroundColor: '#8e44ad', padding: { x: 8, y: 8 } }).setInteractive().setDepth(2000).setScrollFactor(0);
+    let btnDex = this.add.text(-9999, -9999, '', { fontSize: '16px' }).setInteractive().setDepth(2000).setScrollFactor(0).setVisible(false);
     btnDex.on('pointerdown', () => { if(isGameLoaded) openPokedex(); });
 
     uiQuest = this.add.text(20, 195, '📜 ...', { fontSize: '14px', fill: '#b2bec3', backgroundColor: 'rgba(0,0,0,0.8)', padding: { x: 5, y: 5 } }).setDepth(2000).setScrollFactor(0);
@@ -1198,13 +1215,14 @@ function create() {
         });
     }, loop: true });
 
-    let btnShopUI = this.add.text(860, 110, t('btnShop'), { fontSize:'18px', backgroundColor:'#e67e22', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
+    // These Phaser buttons are kept invisible — their handlers are called via window.GameAPI
+    let btnShopUI = this.add.text(-9999, -9999, t('btnShop'), { fontSize:'18px' }).setInteractive().setDepth(1000).setScrollFactor(0).setVisible(false);
     btnShopUI.on('pointerdown', () => { if(isGameLoaded) { shopPanel.setVisible(true); shopPanelBtns.forEach(b=>b.setVisible(true)); } });
 
-    let btnRosterUI = this.add.text(860, 170, '🎒', { fontSize:'18px', backgroundColor:'#9b59b6', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
+    let btnRosterUI = this.add.text(-9999, -9999, '🎒', { fontSize:'18px' }).setInteractive().setDepth(1000).setScrollFactor(0).setVisible(false);
     btnRosterUI.on('pointerdown', () => { if(isGameLoaded) openRoster(); });
 
-    let btnFriend = this.add.text(860, 230, '🤝', { fontSize:'18px', backgroundColor:'#16a085', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
+    let btnFriend = this.add.text(-9999, -9999, '🤝', { fontSize:'18px' }).setInteractive().setDepth(1000).setScrollFactor(0).setVisible(false);
     let friendCooldown = 0;
     btnFriend.on('pointerdown', () => {
         if(!isGameLoaded) return;
@@ -1219,12 +1237,18 @@ function create() {
     });
     this.time.addEvent({ delay: 1000, loop: true, callback: () => { if(friendCooldown>0){ friendCooldown--; if(friendCooldown<=0) btnFriend.setText('🤝'); else btnFriend.setText(`${friendCooldown}s`); } }});
 
+    // --- [HTML UI 橋接 — 讓固定 HTML 按鈕呼叫 Phaser 內部函式] ---
+    window.GameAPI = {
+        toggleBuild:  () => uiMode.emit('pointerdown'),
+        openSettings: () => btnSettings.emit('pointerdown'),
+        openDex:      () => btnDex.emit('pointerdown'),
+        openShop:     () => btnShopUI.emit('pointerdown'),
+        openRoster:   () => btnRosterUI.emit('pointerdown'),
+        openFriend:   () => btnFriend.emit('pointerdown'),
+    };
+
     // --- [視窗縮放自動重新定位 UI] ---
     function repositionUI(W, H) {
-        let R = W - 100; // right-side anchor
-        btnShopUI.setPosition(R, 110);
-        btnRosterUI.setPosition(R, 170);
-        btnFriend.setPosition(R, 230);
         uiTime.setPosition(W - 240, 15);
         btnTimeToggle.setPosition(W - 240, 45);
         uiBuildCancel.setPosition(W / 2, 70);

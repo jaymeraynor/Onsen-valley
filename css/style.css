@@ -87,6 +87,68 @@ canvas {
     display: none;
 }
 
+/* =========================================================
+   固定 HTML UI 按鈕 — 完全在 Phaser canvas 之外，不受鏡頭縮放影響
+   ========================================================= */
+#html-ui {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    pointer-events: none;  /* overlay自身不阻擋點擊 */
+    z-index: 200;           /* 高於 canvas，低於 panels/loading */
+    display: none;          /* hidden until game loads */
+}
+
+/* 左側導覽按鈕群 */
+#html-ui-left {
+    position: absolute;
+    top: 60px; left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    pointer-events: all;
+}
+
+/* 右側導覽按鈕群 */
+#html-ui-right {
+    position: absolute;
+    top: 60px; right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    pointer-events: all;
+    align-items: flex-end;
+}
+
+/* 按鈕通用樣式 */
+.hbtn {
+    display: block;
+    font-size: 14px;
+    font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 14px;
+    cursor: pointer;
+    color: #fff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+    white-space: nowrap;
+    transition: filter 0.1s, transform 0.08s;
+    -webkit-tap-highlight-color: transparent;
+}
+.hbtn:active  { transform: scale(0.93); filter: brightness(0.85); }
+.hbtn:disabled { opacity: 0.45; cursor: default; transform: none; }
+
+/* 個別顏色 */
+.hbtn-green  { background: #27ae60; }
+.hbtn-gray   { background: #2c3e50; }
+.hbtn-purple { background: #8e44ad; }
+.hbtn-orange { background: #d35400; }
+.hbtn-teal   { background: #16a085; }
+.hbtn-indigo { background: #2980b9; }
+.hbtn-red    { background: #c0392b; }
+
 /* 載入畫面 — 飄落的櫻花 */
 .loading-sakura {
     position: absolute;
