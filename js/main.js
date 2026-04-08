@@ -144,8 +144,10 @@ function preload() {
 
 function create() {
     selfRef = this;
-    this.input.addPointer(1); 
+    this.input.addPointer(1);
     let isBuildMode = true;
+    // Panel button tracking (buttons added directly to scene for reliable input)
+    let dexPanelBtns = [], settingsPanelBtns = [], rosterPanelBtns = [], expedPanelBtns = [], shopPanelBtns = [];
 
     if (window.location.protocol !== 'file:') {
         soundWaterfall = this.sound.add('bgm_waterfall', { loop: true, volume: 0.1 });
@@ -393,56 +395,61 @@ function create() {
     uiSaveSync = this.add.text(950, 530, '💾 Saving...', { fontSize: '12px', fill: '#bdc3c7', backgroundColor: 'rgba(0,0,0,0.5)', padding: {x:5, y:3} }).setOrigin(1, 1).setDepth(4000).setScrollFactor(0).setVisible(false);
 
     function openSettings() {
-        if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; return; }
-        if (dexPanel) { dexPanel.destroy(true); dexPanel = null; }
-        if (rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; }
-        if (shopPanel && shopPanel.visible) { shopPanel.setVisible(false); }
+        if (settingsPanel) {
+            settingsPanel.destroy(true); settingsPanel = null;
+            settingsPanelBtns.forEach(b => b.destroy()); settingsPanelBtns = [];
+            return;
+        }
+        if (dexPanel) { dexPanel.destroy(true); dexPanel = null; dexPanelBtns.forEach(b=>b.destroy()); dexPanelBtns=[]; }
+        if (rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; rosterPanelBtns.forEach(b=>b.destroy()); rosterPanelBtns=[]; }
+        if (shopPanel && shopPanel.visible) { shopPanel.setVisible(false); shopPanelBtns.forEach(b=>b.setVisible(false)); }
 
+        // Container holds ONLY non-interactive visuals
         settingsPanel = selfRef.add.container(480, 270).setDepth(4000).setScrollFactor(0);
         let bg = selfRef.add.rectangle(0, 0, 420, 380, 0x2c3e50, 0.95).setStrokeStyle(4, 0xbdc3c7).setInteractive();
         let title = selfRef.add.text(0, -150, '⚙️ Settings', { fontSize: '24px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
-        let closeBtn = selfRef.add.text(170, -150, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
-        
-        closeBtn.on('pointerdown', () => {
-            selfRef.time.delayedCall(10, () => { if(settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; } });
-        });
-        
-        settingsPanel.add([bg, title, closeBtn]);
-
         let langLabel = selfRef.add.text(-170, -70, '🌐 Language:', { fontSize: '18px', fill: '#fff' });
-        let langBtn = selfRef.add.text(80, -70, currentLang.toUpperCase(), { fontSize: '18px', fill: '#f1c40f', backgroundColor: '#34495e', padding:{x:15,y:8} }).setOrigin(0, 0).setInteractive();
+        let muLabel  = selfRef.add.text(-170, -10, '🎵 Music:', { fontSize: '18px', fill: '#fff' });
+        let sfxLabel = selfRef.add.text(-170,  50, '🔊 SFX:',   { fontSize: '18px', fill: '#fff' });
+        let vfxLabel = selfRef.add.text(-170, 110, '✨ VFX:',   { fontSize: '18px', fill: '#fff' });
+        let vfxDesc  = selfRef.add.text(0, 160, '* Disable VFX for better performance.', { fontSize: '14px', fill: '#b2bec3' }).setOrigin(0.5);
+        settingsPanel.add([bg, title, langLabel, muLabel, sfxLabel, vfxLabel, vfxDesc]);
+        settingsPanelBtns = [];
+
+        // All interactive buttons added DIRECTLY to scene (not container) for reliable hit detection
+        let closeBtn = selfRef.add.text(650, 120, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive().setDepth(4001).setScrollFactor(0);
+        closeBtn.on('pointerdown', () => {
+            if(settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; }
+            settingsPanelBtns.forEach(b => b.destroy()); settingsPanelBtns = [];
+        });
+        settingsPanelBtns.push(closeBtn);
+
+        let langBtn = selfRef.add.text(560, 200, currentLang.toUpperCase(), { fontSize: '18px', fill: '#f1c40f', backgroundColor: '#34495e', padding:{x:15,y:8} }).setOrigin(0, 0.5).setInteractive().setDepth(4001).setScrollFactor(0);
         langBtn.on('pointerdown', () => {
             let idx = availableLangs.indexOf(currentLang);
             currentLang = availableLangs[(idx + 1) % availableLangs.length];
             userSettings.lang = currentLang;
             saveSettings();
             langBtn.setText(currentLang.toUpperCase());
-            updateUI(); 
+            updateUI();
             syncRealTime();
         });
-        settingsPanel.add([langLabel, langBtn]);
+        settingsPanelBtns.push(langBtn);
 
-        function createToggle(y, labelText, key) {
-            let label = selfRef.add.text(-170, y, labelText, { fontSize: '18px', fill: '#fff' });
-            let statusText = userSettings[key] ? '✅ ON' : '❌ OFF';
-            let color = userSettings[key] ? '#27ae60' : '#c0392b';
-            let btn = selfRef.add.text(80, y, statusText, { fontSize: '18px', fill: '#fff', backgroundColor: color, padding:{x:15,y:8} }).setInteractive();
+        function makeToggle(screenX, screenY, key) {
+            let btn = selfRef.add.text(screenX, screenY, userSettings[key] ? '✅ ON' : '❌ OFF', { fontSize: '18px', fill: '#fff', backgroundColor: userSettings[key] ? '#27ae60' : '#c0392b', padding:{x:15,y:8} }).setOrigin(0, 0.5).setInteractive().setDepth(4001).setScrollFactor(0);
             btn.on('pointerdown', () => {
                 userSettings[key] = !userSettings[key];
                 saveSettings();
                 btn.setText(userSettings[key] ? '✅ ON' : '❌ OFF');
                 btn.setBackgroundColor(userSettings[key] ? '#27ae60' : '#c0392b');
-                applySettings(); 
+                applySettings();
             });
-            settingsPanel.add([label, btn]);
+            settingsPanelBtns.push(btn);
         }
-
-        createToggle(-10, '🎵 Music:', 'music');
-        createToggle(50, '🔊 SFX:', 'sfx');
-        createToggle(110, '✨ VFX:', 'vfx');
-        
-        let vfxDesc = selfRef.add.text(0, 160, '* Disable VFX for better performance.', { fontSize: '14px', fill: '#b2bec3' }).setOrigin(0.5);
-        settingsPanel.add(vfxDesc);
+        makeToggle(560, 260, 'music');
+        makeToggle(560, 320, 'sfx');
+        makeToggle(560, 380, 'vfx');
     }
 
     function saveSettings() { localStorage.setItem('yokai_settings', JSON.stringify(userSettings)); }
@@ -474,19 +481,17 @@ function create() {
     }
 
     function openPokedex() {
-        if (dexPanel) { dexPanel.destroy(true); dexPanel = null; return; } 
-        if (rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; } 
-        if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; }
+        if (dexPanel) {
+            dexPanel.destroy(true); dexPanel = null;
+            dexPanelBtns.forEach(b => b.destroy()); dexPanelBtns = [];
+            return;
+        }
+        if (rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; rosterPanelBtns.forEach(b=>b.destroy()); rosterPanelBtns=[]; }
+        if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; settingsPanelBtns.forEach(b=>b.destroy()); settingsPanelBtns=[]; }
         dexPanel = selfRef.add.container(0, 0).setDepth(3000).setScrollFactor(0);
         let bg = selfRef.add.rectangle(480, 270, 960, 540, 0x000000, 0.85).setInteractive();
         let title = selfRef.add.text(480, 50, t('btnDex'), { fontSize: '32px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
-        let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
-        
-        closeBtn.on('pointerdown', () => {
-            selfRef.time.delayedCall(10, () => { if(dexPanel) { dexPanel.destroy(true); dexPanel = null; } });
-        });
-        
-        dexPanel.add([bg, title, closeBtn]);
+        dexPanel.add([bg, title]);
         yokaiDatabase.forEach((yokai, index) => {
             let rowY = 120 + index * 90;
             let avatar = selfRef.add.text(200, rowY, yokai.unlocked ? yokai.emoji : '❓', { fontSize: '48px' }).setOrigin(0.5);
@@ -496,26 +501,29 @@ function create() {
             let descTxt = selfRef.add.text(250, rowY + 5, descStr, { fontSize: '14px', fill: '#b2bec3', wordWrap: { width: 450 } });
             dexPanel.add([avatar, nameTxt, descTxt]);
         });
+        let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive().setDepth(3001).setScrollFactor(0);
+        closeBtn.on('pointerdown', () => {
+            if(dexPanel) { dexPanel.destroy(true); dexPanel = null; }
+            dexPanelBtns.forEach(b => b.destroy()); dexPanelBtns = [];
+        });
+        dexPanelBtns = [closeBtn];
     }
 
     function openRoster() {
-        if (rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; return; } 
-        if (dexPanel) { dexPanel.destroy(true); dexPanel = null; } 
-        if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; }
+        if (rosterPanel) {
+            rosterPanel.destroy(true); rosterPanel = null;
+            rosterPanelBtns.forEach(b => b.destroy()); rosterPanelBtns = [];
+            return;
+        }
+        if (dexPanel) { dexPanel.destroy(true); dexPanel = null; dexPanelBtns.forEach(b=>b.destroy()); dexPanelBtns=[]; }
+        if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; settingsPanelBtns.forEach(b=>b.destroy()); settingsPanelBtns=[]; }
         rosterPanel = selfRef.add.container(0, 0).setDepth(3000).setScrollFactor(0);
         let bg = selfRef.add.rectangle(480, 270, 960, 540, 0x1a252f, 0.95).setInteractive();
         let title = selfRef.add.text(480, 50, '🎒 Roster', { fontSize: '32px', fill: '#ff9ff3', fontStyle: 'bold' }).setOrigin(0.5);
-        let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
-        
-        closeBtn.on('pointerdown', () => {
-            selfRef.time.delayedCall(10, () => { if(rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; } });
-        });
-        
-        rosterPanel.add([bg, title, closeBtn]);
+        rosterPanel.add([bg, title]);
 
         if (ownedYokais.length === 0) {
-            let emptyMsg = selfRef.add.text(480, 270, 'Empty Roster.', { fontSize: '20px', fill: '#b2bec3', align: 'center', lineSpacing: 10 }).setOrigin(0.5);
-            rosterPanel.add(emptyMsg);
+            rosterPanel.add(selfRef.add.text(480, 270, 'Empty Roster.', { fontSize: '20px', fill: '#b2bec3', align: 'center', lineSpacing: 10 }).setOrigin(0.5));
         } else {
             ownedYokais.forEach((yokai, index) => {
                 let col = index % 2; let row = Math.floor(index / 2);
@@ -529,6 +537,12 @@ function create() {
                 rosterPanel.add([cardBg, avatar, nameTxt, rarityTxt, traitTxt]);
             });
         }
+        let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive().setDepth(3001).setScrollFactor(0);
+        closeBtn.on('pointerdown', () => {
+            if(rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; }
+            rosterPanelBtns.forEach(b => b.destroy()); rosterPanelBtns = [];
+        });
+        rosterPanelBtns = [closeBtn];
     }
 
     function syncRealTime() {
@@ -785,8 +799,10 @@ function create() {
             let eBg = selfRef.add.rectangle(0, 0, 500, 380, 0x34495e, 0.95).setStrokeStyle(4, 0x9b59b6).setInteractive();
             let eTitle = selfRef.add.text(0, -160, '🏯 遠方村莊', { fontSize: '24px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
             let statsText = selfRef.add.text(0, -100, '', { fontSize: '18px', fill: '#fff', align: 'center', lineSpacing: 8 }).setOrigin(0.5);
-            
-            let teamUI = [];
+            let subtitle = selfRef.add.text(0, -35, '👇 選擇出戰隊員 👇', { fontSize: '16px', fill: '#bdc3c7' }).setOrigin(0.5);
+            expedPanel.add([eBg, eTitle, statsText, subtitle]);
+            expedPanelBtns = [];
+
             function updateExpedStats() {
                 let tMult = 1.0, aMult = 1.0, gMult = 1.0;
                 selectedTeam.forEach(y => { if(y.id===0) gMult+=0.15; if(y.id===1) tMult-=0.20; if(y.id===2) aMult+=0.30; if(y.id===3) { aMult+=0.10; tMult-=0.10; } });
@@ -796,39 +812,42 @@ function create() {
             }
             updateExpedStats();
 
-            let subtitle = selfRef.add.text(0, -35, '👇 選擇出戰隊員 👇', { fontSize: '16px', fill: '#bdc3c7' }).setOrigin(0.5);
-            available.forEach((y, idx) => {
-                let btnX = -180 + (idx * 80); let btnY = 30;
-                let card = selfRef.add.rectangle(btnX, btnY, 60, 60, 0x2c3e50, 1).setStrokeStyle(2, 0xbdc3c7).setInteractive();
-                let icon = selfRef.add.text(btnX, btnY, y.emoji, { fontSize: '32px' }).setOrigin(0.5);
-                card.on('pointerdown', () => {
-                    let fIdx = selectedTeam.findIndex(sy => sy.id === y.id);
-                    if (fIdx > -1) { selectedTeam.splice(fIdx, 1); card.setFillStyle(0x2c3e50); card.setStrokeStyle(2, 0xbdc3c7); } 
-                    else if (selectedTeam.length < 3) { selectedTeam.push(y); card.setFillStyle(0x27ae60); card.setStrokeStyle(3, 0x55efc4); }
-                    updateExpedStats();
+            function closeExpedPanel() {
+                if(expedPanel) { expedPanel.destroy(); expedPanel = null; }
+                expedPanelBtns.forEach(b => b.destroy()); expedPanelBtns = [];
+            }
+
+            // Yokai selection cards - scene level
+            if (available.length === 0) {
+                expedPanel.add(selfRef.add.text(0, 30, '無待命中的夥伴', { fontSize: '16px', fill: '#e74c3c' }).setOrigin(0.5));
+            } else {
+                available.forEach((y, idx) => {
+                    let screenX = 480 + (-180 + idx * 80); let screenY = 300;
+                    let card = selfRef.add.rectangle(screenX, screenY, 60, 60, 0x2c3e50, 1).setStrokeStyle(2, 0xbdc3c7).setInteractive().setDepth(3001).setScrollFactor(0);
+                    let icon = selfRef.add.text(screenX, screenY, y.emoji, { fontSize: '32px' }).setOrigin(0.5).setDepth(3001).setScrollFactor(0);
+                    card.on('pointerdown', () => {
+                        let fIdx = selectedTeam.findIndex(sy => sy.id === y.id);
+                        if (fIdx > -1) { selectedTeam.splice(fIdx, 1); card.setFillStyle(0x2c3e50); card.setStrokeStyle(2, 0xbdc3c7); }
+                        else if (selectedTeam.length < 3) { selectedTeam.push(y); card.setFillStyle(0x27ae60); card.setStrokeStyle(3, 0x55efc4); }
+                        updateExpedStats();
+                    });
+                    expedPanelBtns.push(card, icon);
                 });
-                teamUI.push(card, icon);
-            });
+            }
 
-            if(available.length === 0) teamUI.push(selfRef.add.text(0, 30, '無待命中的夥伴', { fontSize: '16px', fill: '#e74c3c' }).setOrigin(0.5));
-
-            let eBtnYes = selfRef.add.text(-100, 130, '[ 派遣出發 ]', { fontSize: '20px', fill: '#55efc4', backgroundColor: '#27ae60', padding: {x:15,y:8} }).setOrigin(0.5).setInteractive();
-            let eBtnNo = selfRef.add.text(100, 130, '[ 放棄 ]', { fontSize: '20px', fill: '#ff7675', backgroundColor: '#c0392b', padding: {x:15,y:8} }).setOrigin(0.5).setInteractive();
-            
-            eBtnNo.on('pointerdown', () => {
-                selfRef.time.delayedCall(10, () => { if(expedPanel) { expedPanel.destroy(); expedPanel = null; } });
-            });
+            // Yes/No buttons - scene level
+            let eBtnYes = selfRef.add.text(380, 400, '[ 派遣出發 ]', { fontSize: '20px', fill: '#55efc4', backgroundColor: '#27ae60', padding: {x:15,y:8} }).setOrigin(0.5).setInteractive().setDepth(3001).setScrollFactor(0);
+            let eBtnNo  = selfRef.add.text(580, 400, '[ 放棄 ]',    { fontSize: '20px', fill: '#ff7675', backgroundColor: '#c0392b', padding: {x:15,y:8} }).setOrigin(0.5).setInteractive().setDepth(3001).setScrollFactor(0);
+            eBtnNo.on('pointerdown', () => { closeExpedPanel(); });
             eBtnYes.on('pointerdown', () => {
                 let finalData = updateExpedStats();
                 selectedTeam.forEach(y => { y.state = 'expedition'; });
                 activeExpedition = { gx: clickGx, gy: clickGy, sx: sx, sy: sy, dist: dist, timeTotal: finalData.fTime, timeLeft: finalData.fTime, rewardAcorn: finalData.fAcorn, rewardGem: finalData.fGem, state: 'exploring', team: selectedTeam.map(y=>y.id), marker: selfRef.add.text(sx, sy-40, '🎒', {fontSize:'24px'}).setOrigin(0.5).setDepth(1600) };
                 selfRef.tweens.add({ targets: activeExpedition.marker, y: sy-50, yoyo: true, repeat: -1, duration: 600 });
                 uiExpedTracker.setVisible(true); showFloatingText(480, 270, `探索隊出發！`, '#a29bfe', '24px', true);
-                
-                selfRef.time.delayedCall(10, () => { if(expedPanel) { expedPanel.destroy(); expedPanel = null; } });
-                updateUI();
+                closeExpedPanel(); updateUI();
             });
-            expedPanel.add([eBg, eTitle, statsText, subtitle, eBtnYes, eBtnNo, ...teamUI]);
+            expedPanelBtns.push(eBtnYes, eBtnNo);
             return;
         }
 
@@ -939,29 +958,33 @@ function create() {
 
     shopPanel = this.add.container(480, 270).setDepth(3000).setScrollFactor(0).setVisible(false);
     let shopBg = this.add.rectangle(0, 0, 600, 450, 0x2d3436, 0.95).setStrokeStyle(4, 0xf39c12).setInteractive();
-    
-    let closeBtn = this.add.text(260, -200, '✖', { fontSize: '28px' }).setInteractive();
-    closeBtn.on('pointerdown', () => {
-        shopPanel.setVisible(false);
-    });
-    
-    shopPanel.add([shopBg, this.add.text(0, -190, t('shopTitle'), { fontSize:'28px', fontStyle:'bold' }).setOrigin(0.5), closeBtn]);
-    
+    shopPanel.add([shopBg, this.add.text(0, -190, t('shopTitle'), { fontSize:'28px', fontStyle:'bold' }).setOrigin(0.5)]);
     itemDatabase.forEach((item, i) => {
         let rowY = -120 + (i * 55);
         shopPanel.add(this.add.text(-220, rowY, item.emoji, { fontSize:'28px' }).setOrigin(0.5));
         shopPanel.add(this.add.text(-180, rowY, item.name[currentLang], { fontSize:'16px' }).setOrigin(0, 0.5));
         let priceTxt = item.price === 0 ? 'FREE' : `${item.price}${item.currency==='ACORN'?'🌰':'💎'}`;
         shopPanel.add(this.add.text(120, rowY, priceTxt, { fontSize:'16px', fill:'#f1c40f' }).setOrigin(0.5));
-        
-        let buyBtn = this.add.text(220, rowY, `[ ${t('buy')} ]`, { fontSize:'16px', fill:'#55efc4' }).setInteractive();
+    });
+
+    // Interactive shop buttons added directly to scene (not container) for reliable input
+    let shopClose = this.add.text(740, 70, '✖', { fontSize:'28px', fill:'#fff' }).setInteractive().setDepth(3001).setScrollFactor(0).setVisible(false);
+    shopClose.on('pointerdown', () => {
+        shopPanel.setVisible(false);
+        shopPanelBtns.forEach(b => b.setVisible(false));
+    });
+    shopPanelBtns.push(shopClose);
+    itemDatabase.forEach((item, i) => {
+        let screenY = 270 + (-120 + i * 55);
+        let buyBtn = this.add.text(700, screenY, `[ ${t('buy')} ]`, { fontSize:'16px', fill:'#55efc4' }).setInteractive().setDepth(3001).setScrollFactor(0).setVisible(false);
         buyBtn.on('pointerdown', () => {
             activeShopItem = item;
             shopPanel.setVisible(false);
+            shopPanelBtns.forEach(b => b.setVisible(false));
             uiBuildCancel.setVisible(true);
             updateUI();
         });
-        shopPanel.add(buyBtn);
+        shopPanelBtns.push(buyBtn);
     });
 
     function startUpgrade(targetPool, nextLevel) {
@@ -1117,7 +1140,7 @@ function create() {
     }, loop: true });
 
     let btnShopUI = this.add.text(860, 110, t('btnShop'), { fontSize:'18px', backgroundColor:'#e67e22', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
-    btnShopUI.on('pointerdown', () => { if(isGameLoaded) shopPanel.setVisible(true); });
+    btnShopUI.on('pointerdown', () => { if(isGameLoaded) { shopPanel.setVisible(true); shopPanelBtns.forEach(b=>b.setVisible(true)); } });
 
     let btnRosterUI = this.add.text(860, 170, '🎒', { fontSize:'18px', backgroundColor:'#9b59b6', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
     btnRosterUI.on('pointerdown', () => { if(isGameLoaded) openRoster(); });
