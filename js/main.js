@@ -59,8 +59,8 @@ function showFloatingText(x, y, text, color, fontSize = '18px', isFixed = false)
 // --- [增加手機版自動縮放適配] ---
 const config = { 
     type: Phaser.AUTO, 
-    width: 800, 
-    height: 600, 
+    width: 960,
+    height: 540,
     backgroundColor: '#2d3436', 
     scale: {
         mode: Phaser.Scale.FIT,              
@@ -289,7 +289,7 @@ function create() {
     for(let i=0; i<150; i++) signPool.push(this.add.text(0,0,'💰', {fontSize:'16px'}).setVisible(false).setOrigin(0.5));
     for(let i=0; i<50; i++) villagePool.push(this.add.text(0,0,'🏯', {fontSize:'32px'}).setVisible(false).setOrigin(0.5));
 
-    nightOverlay = this.add.rectangle(400, 300, 800, 600, 0x0a3d62, 0).setDepth(1800).setScrollFactor(0);
+    nightOverlay = this.add.rectangle(480, 270, 960, 540, 0x0a3d62, 0).setDepth(1800).setScrollFactor(0);
 
     // [模組化] 初始化天氣系統
     if (typeof WeatherSystem !== 'undefined') {
@@ -298,9 +298,9 @@ function create() {
 
     uiScore = this.add.text(20, 15, '', { fontSize: '20px', fill: '#ffeaa7', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setDepth(2000).setScrollFactor(0);
     uiPremium = this.add.text(20, 40, '', { fontSize: '20px', fill: '#81ecec', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 }).setDepth(2000).setScrollFactor(0);
-    uiPlayerLvl = this.add.text(250, 15, '', { fontSize: '18px', fill: '#55efc4', fontStyle: 'bold', backgroundColor: 'rgba(45,52,54,0.8)', padding: {x:8,y:4} }).setDepth(2000).setScrollFactor(0);
-    uiTime = this.add.text(550, 15, '🕐', { fontSize: '16px', fill: '#fff' }).setDepth(2000).setScrollFactor(0);
-    btnTimeToggle = this.add.text(550, 45, '', { fontSize: '14px', fill: '#fff', backgroundColor: '#34495e', padding: {x:10, y:5} }).setInteractive().setDepth(2000).setScrollFactor(0);
+    uiPlayerLvl = this.add.text(300, 15, '', { fontSize: '18px', fill: '#55efc4', fontStyle: 'bold', backgroundColor: 'rgba(45,52,54,0.8)', padding: {x:8,y:4} }).setDepth(2000).setScrollFactor(0);
+    uiTime = this.add.text(720, 15, '🕐', { fontSize: '16px', fill: '#fff' }).setDepth(2000).setScrollFactor(0);
+    btnTimeToggle = this.add.text(720, 45, '', { fontSize: '14px', fill: '#fff', backgroundColor: '#34495e', padding: {x:10, y:5} }).setInteractive().setDepth(2000).setScrollFactor(0);
     btnTimeToggle.on('pointerdown', () => { if(!isGameLoaded) return; if (timeMode === 'auto') timeMode = 'day'; else if (timeMode === 'day') timeMode = 'night'; else timeMode = 'auto'; syncRealTime(); });
 
     let btnTopup = this.add.text(180, 42, '➕', { fontSize: '14px', backgroundColor: '#e84393', padding: { x: 5, y: 3 } }).setInteractive().setDepth(2000).setScrollFactor(0);
@@ -321,7 +321,7 @@ function create() {
         if(!isGameLoaded) return;
         if(activeExpedition && activeExpedition.state === 'done') {
             score += activeExpedition.rewardAcorn; premiumCoin += activeExpedition.rewardGem;
-            showFloatingText(400, 300, `🎉\n+${activeExpedition.rewardAcorn}🌰\n+${activeExpedition.rewardGem}💎`, '#fbc531', '28px', true);
+            showFloatingText(480, 270, `🎉\n+${activeExpedition.rewardAcorn}🌰\n+${activeExpedition.rewardGem}💎`, '#fbc531', '28px', true);
             selfRef.tweens.killTweensOf(activeExpedition.marker); 
             activeExpedition.marker.destroy();
             activeExpedition.team.forEach(id => { let y = ownedYokais.find(oy => oy.id === id); if (y) y.state = 'idle'; });
@@ -332,10 +332,10 @@ function create() {
         }
     });
 
-    uiBuildCancel = this.add.text(400, 70, '🚫 Cancel', { fontSize: '18px', fill: '#fff', backgroundColor: '#c0392b', padding: {x:15, y:10} }).setOrigin(0.5).setInteractive().setDepth(3000).setScrollFactor(0).setVisible(false);
+    uiBuildCancel = this.add.text(480, 70, '🚫 Cancel', { fontSize: '18px', fill: '#fff', backgroundColor: '#c0392b', padding: {x:15, y:10} }).setOrigin(0.5).setInteractive().setDepth(3000).setScrollFactor(0).setVisible(false);
     uiBuildCancel.on('pointerdown', () => { if(!isGameLoaded) return; activeShopItem = null; uiBuildCancel.setVisible(false); updateUI(); });
     
-    uiSaveSync = this.add.text(780, 580, '💾 Saving...', { fontSize: '12px', fill: '#bdc3c7', backgroundColor: 'rgba(0,0,0,0.5)', padding: {x:5, y:3} }).setOrigin(1, 1).setDepth(4000).setScrollFactor(0).setVisible(false);
+    uiSaveSync = this.add.text(950, 530, '💾 Saving...', { fontSize: '12px', fill: '#bdc3c7', backgroundColor: 'rgba(0,0,0,0.5)', padding: {x:5, y:3} }).setOrigin(1, 1).setDepth(4000).setScrollFactor(0).setVisible(false);
 
     function openSettings() {
         if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; return; }
@@ -343,7 +343,7 @@ function create() {
         if (rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; }
         if (shopPanel && shopPanel.visible) { shopPanel.setVisible(false); }
 
-        settingsPanel = selfRef.add.container(400, 300).setDepth(4000).setScrollFactor(0);
+        settingsPanel = selfRef.add.container(480, 270).setDepth(4000).setScrollFactor(0);
         let bg = selfRef.add.rectangle(0, 0, 420, 380, 0x2c3e50, 0.95).setStrokeStyle(4, 0xbdc3c7).setInteractive();
         let title = selfRef.add.text(0, -150, '⚙️ Settings', { fontSize: '24px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
         let closeBtn = selfRef.add.text(170, -150, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
@@ -424,9 +424,9 @@ function create() {
         if (rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; } 
         if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; }
         dexPanel = selfRef.add.container(0, 0).setDepth(3000).setScrollFactor(0);
-        let bg = selfRef.add.rectangle(400, 300, 800, 600, 0x000000, 0.85).setInteractive();
-        let title = selfRef.add.text(400, 50, t('btnDex'), { fontSize: '32px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
-        let closeBtn = selfRef.add.text(750, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+        let bg = selfRef.add.rectangle(480, 270, 960, 540, 0x000000, 0.85).setInteractive();
+        let title = selfRef.add.text(480, 50, t('btnDex'), { fontSize: '32px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
+        let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
         closeBtn.on('pointerdown', (p) => { 
             p.stopPropagation(); 
@@ -450,9 +450,9 @@ function create() {
         if (dexPanel) { dexPanel.destroy(true); dexPanel = null; } 
         if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; }
         rosterPanel = selfRef.add.container(0, 0).setDepth(3000).setScrollFactor(0);
-        let bg = selfRef.add.rectangle(400, 300, 800, 600, 0x1a252f, 0.95).setInteractive();
-        let title = selfRef.add.text(400, 50, '🎒 Roster', { fontSize: '32px', fill: '#ff9ff3', fontStyle: 'bold' }).setOrigin(0.5);
-        let closeBtn = selfRef.add.text(750, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
+        let bg = selfRef.add.rectangle(480, 270, 960, 540, 0x1a252f, 0.95).setInteractive();
+        let title = selfRef.add.text(480, 50, '🎒 Roster', { fontSize: '32px', fill: '#ff9ff3', fontStyle: 'bold' }).setOrigin(0.5);
+        let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive();
         
         closeBtn.on('pointerdown', (p) => { 
             p.stopPropagation(); 
@@ -462,7 +462,7 @@ function create() {
         rosterPanel.add([bg, title, closeBtn]);
 
         if (ownedYokais.length === 0) {
-            let emptyMsg = selfRef.add.text(400, 300, 'Empty Roster.', { fontSize: '20px', fill: '#b2bec3', align: 'center', lineSpacing: 10 }).setOrigin(0.5);
+            let emptyMsg = selfRef.add.text(480, 270, 'Empty Roster.', { fontSize: '20px', fill: '#b2bec3', align: 'center', lineSpacing: 10 }).setOrigin(0.5);
             rosterPanel.add(emptyMsg);
         } else {
             ownedYokais.forEach((yokai, index) => {
@@ -528,8 +528,8 @@ function create() {
             selfRef.tweens.killTweensOf(guideFinger); 
             guideFinger.destroy(); 
         }
-        let targetX = 400, targetY = 300; 
-        if (tutorialStep === 1) { targetX = 680; targetY = 80; } 
+        let targetX = 480, targetY = 270;
+        if (tutorialStep === 1) { targetX = 860; targetY = 80; }
         guideFinger = selfRef.add.text(targetX, targetY, '👇', { fontSize: '48px' }).setOrigin(0.5).setDepth(5000).setScrollFactor(0);
         selfRef.tweens.add({ targets: guideFinger, y: targetY - 20, yoyo: true, repeat: -1, duration: 400, ease: 'Sine.easeInOut' });
     }
@@ -564,7 +564,7 @@ function create() {
 
     selfRef.addExp = function(amount) {
         playerExp += amount; let req = getExpRequired(playerLevel);
-        if (playerExp >= req) { playerExp -= req; playerLevel++; selfRef.cameras.main.flash(300, 85, 239, 196, 0.3); showFloatingText(400, 300, '🎉 升級 Lv' + playerLevel, '#55efc4', '32px', true); }
+        if (playerExp >= req) { playerExp -= req; playerLevel++; selfRef.cameras.main.flash(300, 85, 239, 196, 0.3); showFloatingText(480, 270, '🎉 升級 Lv' + playerLevel, '#55efc4', '32px', true); }
         updateUI();
     };
 
@@ -591,7 +591,7 @@ function create() {
         if (done) { 
             score += currentQuest.reward; premiumCoin += currentQuest.premium; 
             selfRef.addExp(currentQuest.reward); 
-            showFloatingText(400, 100, `🌟 任務完成！+${currentQuest.reward}🌰`, '#ff9ff3', '24px', true); 
+            showFloatingText(480, 100, `🌟 任務完成！+${currentQuest.reward}🌰`, '#ff9ff3', '24px', true);
             if (tutorialStep < 5) tutorialStep++; 
             selfRef.time.delayedCall(1000, generateQuest); 
         } else { updateUI(); }
@@ -702,7 +702,7 @@ function create() {
             let baseTime = dist * 8; let baseAcorn = dist * 200; let baseGem = Math.floor(dist / 3);
             let selectedTeam = []; let available = ownedYokais.filter(y => y.state === 'idle');
 
-            expedPanel = selfRef.add.container(400, 300).setDepth(3000).setScrollFactor(0);
+            expedPanel = selfRef.add.container(480, 270).setDepth(3000).setScrollFactor(0);
             let eBg = selfRef.add.rectangle(0, 0, 500, 380, 0x34495e, 0.95).setStrokeStyle(4, 0x9b59b6).setInteractive();
             let eTitle = selfRef.add.text(0, -160, '🏯 遠方村莊', { fontSize: '24px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
             let statsText = selfRef.add.text(0, -100, '', { fontSize: '18px', fill: '#fff', align: 'center', lineSpacing: 8 }).setOrigin(0.5);
@@ -746,7 +746,7 @@ function create() {
                 selectedTeam.forEach(y => { y.state = 'expedition'; });
                 activeExpedition = { gx: clickGx, gy: clickGy, sx: sx, sy: sy, dist: dist, timeTotal: finalData.fTime, timeLeft: finalData.fTime, rewardAcorn: finalData.fAcorn, rewardGem: finalData.fGem, state: 'exploring', team: selectedTeam.map(y=>y.id), marker: selfRef.add.text(sx, sy-40, '🎒', {fontSize:'24px'}).setOrigin(0.5).setDepth(1600) };
                 selfRef.tweens.add({ targets: activeExpedition.marker, y: sy-50, yoyo: true, repeat: -1, duration: 600 });
-                uiExpedTracker.setVisible(true); showFloatingText(400, 300, `探索隊出發！`, '#a29bfe', '24px', true);
+                uiExpedTracker.setVisible(true); showFloatingText(480, 270, `探索隊出發！`, '#a29bfe', '24px', true);
                 
                 selfRef.time.delayedCall(10, () => { if(expedPanel) { expedPanel.destroy(); expedPanel = null; } });
                 updateUI();
@@ -860,7 +860,7 @@ function create() {
         graphics.fillStyle(c.w, 0.9); graphics.beginPath(); graphics.moveTo(sx, sy); graphics.lineTo(sx+halfWidth*v*0.8, sy+16); graphics.lineTo(sx, sy+32); graphics.lineTo(sx-halfWidth*v*0.8, sy+16); graphics.closePath(); graphics.fillPath();
     }
 
-    shopPanel = this.add.container(400, 300).setDepth(3000).setScrollFactor(0).setVisible(false);
+    shopPanel = this.add.container(480, 270).setDepth(3000).setScrollFactor(0).setVisible(false);
     let shopBg = this.add.rectangle(0, 0, 600, 450, 0x2d3436, 0.95).setStrokeStyle(4, 0xf39c12).setInteractive();
     
     let closeBtn = this.add.text(260, -200, '✖', { fontSize: '28px' }).setInteractive();
@@ -960,7 +960,7 @@ function create() {
         let dbEntry = Phaser.Utils.Array.GetRandom(yokaiDatabase);
         if (!dbEntry.unlocked) {
             dbEntry.unlocked = true;
-            let unlockUI = selfRef.add.text(400, 100, t('msgUnlock') + dbEntry.emoji, { fontSize: '24px', fill: '#fbc531', backgroundColor: 'rgba(0,0,0,0.7)', padding: 10 }).setOrigin(0.5).setDepth(2000).setScrollFactor(0);
+            let unlockUI = selfRef.add.text(480, 100, t('msgUnlock') + dbEntry.emoji, { fontSize: '24px', fill: '#fbc531', backgroundColor: 'rgba(0,0,0,0.7)', padding: 10 }).setOrigin(0.5).setDepth(2000).setScrollFactor(0);
             selfRef.tweens.add({ targets: unlockUI, y: 50, alpha: 0, duration: 3000, delay: 1000, onComplete: () => unlockUI.destroy() });
         }
 
@@ -996,7 +996,7 @@ function create() {
                         if (dbEntry.affection >= 3 && !ownedYokais.find(y => y.id === dbEntry.id)) {
                             ownedYokais.push({ ...dbEntry, level: 1, state: 'idle' });
                             selfRef.cameras.main.flash(300, 255, 255, 100, 0.4);
-                            showFloatingText(400, 150, `🎉 ${dbEntry.name[currentLang]}！`, '#f1c40f', '28px', true);
+                            showFloatingText(480, 150, `🎉 ${dbEntry.name[currentLang]}！`, '#f1c40f', '28px', true);
                         }
                         selfRef.time.delayedCall(50, () => { if(affectionBubble) { affectionBubble.destroy(); affectionBubble = null; } });
                     });
@@ -1042,13 +1042,13 @@ function create() {
         });
     }, loop: true });
 
-    let btnShopUI = this.add.text(680, 110, t('btnShop'), { fontSize:'18px', backgroundColor:'#e67e22', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
+    let btnShopUI = this.add.text(860, 110, t('btnShop'), { fontSize:'18px', backgroundColor:'#e67e22', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
     btnShopUI.on('pointerdown', () => { if(isGameLoaded) shopPanel.setVisible(true); });
 
-    let btnRosterUI = this.add.text(680, 170, '🎒', { fontSize:'18px', backgroundColor:'#9b59b6', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
+    let btnRosterUI = this.add.text(860, 170, '🎒', { fontSize:'18px', backgroundColor:'#9b59b6', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
     btnRosterUI.on('pointerdown', () => { if(isGameLoaded) openRoster(); });
 
-    let btnFriend = this.add.text(680, 230, '🤝', { fontSize:'18px', backgroundColor:'#16a085', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
+    let btnFriend = this.add.text(860, 230, '🤝', { fontSize:'18px', backgroundColor:'#16a085', padding:{x:10,y:10} }).setOrigin(0.5).setInteractive().setDepth(1000).setScrollFactor(0);
     let friendCooldown = 0;
     btnFriend.on('pointerdown', () => {
         if(!isGameLoaded) return;
@@ -1056,7 +1056,7 @@ function create() {
             let assistExp = Math.max(1, playerLevel + Math.floor(Math.random()*3) - 1) * 30; 
             selfRef.addExp(assistExp); selfRef.cameras.main.fadeOut(200,0,0,0);
             selfRef.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-                showFloatingText(400, 300, `🤝\n+${assistExp} EXP`, '#55efc4', '24px', true); selfRef.cameras.main.fadeIn(300,0,0,0);
+                showFloatingText(480, 270, `🤝\n+${assistExp} EXP`, '#55efc4', '24px', true); selfRef.cameras.main.fadeIn(300,0,0,0);
             });
             friendCooldown = 45; btnFriend.setText(`${friendCooldown}s`);
         }
