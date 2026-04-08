@@ -49,6 +49,17 @@ let mapData = [];
 function getBuildTime(level) { let b = Math.floor(10 * Math.pow(1.8, level - 1)); return staff.foreman ? Math.floor(b*0.5) : b; } 
 function t(key) { return i18n[currentLang][key] || key; }
 
+// Update all fixed HTML UI text to match currentLang
+function updateHTMLLang() {
+    hText('hbtn-build',    isBuildMode ? t('modeBuild') : t('modeDemolish'));
+    hText('hbtn-settings', t('btnSettings'));
+    hText('hbtn-dex',      t('btnDex'));
+    hText('hbtn-shop',     t('btnShop'));
+    hText('hbtn-roster',   t('btnRoster'));
+    hText('hbtn-friend',   t('btnFriend'));
+    hText('hbtn-time',     t('timeAuto'));
+}
+
 // HTML UI helpers — update fixed overlay elements without touching Phaser camera
 function hEl(id) { return document.getElementById(id); }
 function hText(id, txt) { let e = hEl(id); if (e) e.textContent = txt; }
@@ -352,6 +363,7 @@ function create() {
     function autoEnter() {
         isGameLoaded = true;
         updateUI();
+        updateHTMLLang();
         // Show fixed HTML buttons now that game is ready
         let htmlUi = document.getElementById('html-ui');
         if (htmlUi) htmlUi.style.display = 'block';
@@ -500,6 +512,7 @@ function create() {
             saveSettings();
             langBtn.setText(currentLang.toUpperCase());
             updateUI();
+            updateHTMLLang();
             syncRealTime();
         });
         settingsPanelBtns.push(langBtn);
@@ -972,7 +985,12 @@ function create() {
         if (status === -1 || status === -2 || status === -3 || status === -4) return;
 
         if (isBuildMode) {
-            if (targetPool && (targetPool.state === 'waiting_upgrade' || targetPool.state === 'waiting_demolish')) { showFloatingText(p.worldX, p.worldY, '工程排程中', '#f1c40f'); return; }
+            if (targetPool && targetPool.state === 'waiting_upgrade') {
+                if (targetPool.occupants === 0 && targetPool.reserved === 0) { startUpgrade(targetPool, targetPool.nextLevel); }
+                else { showFloatingText(p.worldX, p.worldY, '工程排程中', '#f1c40f'); }
+                return;
+            }
+            if (targetPool && targetPool.state === 'waiting_demolish') { showFloatingText(p.worldX, p.worldY, '工程排程中', '#f1c40f'); return; }
             if (targetPool && targetPool.state === 'ready') {
                 targetPool.state = 'active'; 
                 if(targetPool.readyIcon) { 
@@ -1164,6 +1182,8 @@ function create() {
             let stepX = pathIn[i].x, stepY = pathIn[i].y;
             walkTweens.push({ targets: yokai, x: offsetX+(stepX-stepY)*halfWidth, y: offsetY+(stepX+stepY)*halfHeight-5, duration: 350, ease: 'Linear', onStart: () => yokai.setDepth(stepX+stepY+0.1) });
         }
+        // Guard: if pool is at spawn point path has only 1 step → walkTweens is empty → tweens.chain crashes on undefined[0]
+        if (walkTweens.length === 0) { walkTweens.push({ targets: yokai, duration: 50 }); }
 
         selfRef.tweens.chain({
             tweens: walkTweens,
