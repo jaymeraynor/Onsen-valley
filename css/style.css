@@ -1,19 +1,15 @@
-html {
-    overflow: hidden;
-}
-body {
+html, body {
     margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
     background-color: #0652dd;
     font-family: 'Segoe UI', sans-serif;
-    overflow: hidden;
     touch-action: none;
 }
 canvas {
-    /* box-shadow removed: body and canvas are same ocean colour, shadow just creates a dark box outline */
+    display: block;
 }
 #loading-screen {
     position: fixed;

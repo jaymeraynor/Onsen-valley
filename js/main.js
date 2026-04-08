@@ -60,12 +60,10 @@ function showFloatingText(x, y, text, color, fontSize = '18px', isFixed = false)
 // --- [增加手機版自動縮放適配] ---
 const config = {
     type: Phaser.AUTO,
-    width: 960,
-    height: 540,
     backgroundColor: '#0652dd',
     scale: {
-        mode: Phaser.Scale.EXPAND,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.NO_CENTER
     },
     scene: { preload: preload, create: create, update: update }
 };
@@ -229,7 +227,26 @@ function create() {
                 if (mapData[y][x].status === -3 && mapData[y-1][x].status === -2) mapData[y][x].status = -4;
             }
         }
+        markOceanBorders();
         updateAdjacency();
+    }
+
+    // Mark ocean tiles within 2 tiles of any island edge as -8 (rendered ocean border)
+    // These cover the isometric staircase effect at island edges
+    function markOceanBorders() {
+        islandDatabase.forEach(island => {
+            let icx = centerGrid + island.cx;
+            let icy = centerGrid + island.cy;
+            let r = island.radius;
+            let outerR = r + 2;
+            for (let ty = Math.max(0, Math.floor(icy - outerR - 1)); ty <= Math.min(gridSize-1, Math.ceil(icy + outerR + 1)); ty++) {
+                for (let tx = Math.max(0, Math.floor(icx - outerR - 1)); tx <= Math.min(gridSize-1, Math.ceil(icx + outerR + 1)); tx++) {
+                    if (mapData[ty][tx].status !== -7) continue;
+                    let dist = Math.sqrt(Math.pow(tx - icx, 2) + Math.pow(ty - icy, 2));
+                    if (dist <= outerR) mapData[ty][tx].status = -8;
+                }
+            }
+        });
     }
 
     function loadGameData() {
@@ -308,6 +325,9 @@ function create() {
             setLoadProgress(50, '生成島嶼...');
             generateNewMap();
             generateQuest();
+        } else {
+            // Apply ocean border fix to loaded saves (idempotent — safe to re-run)
+            markOceanBorders();
         }
         setLoadProgress(70, '建立世界...');
         // Centre camera on main island after map is ready
@@ -1263,7 +1283,7 @@ function update() {
         for (let x = minGx; x <= maxGx; x++) {
             let tile = mapData[y][x];
             if(!tile) continue;
-            // Ocean tiles are covered by the background rect — skip to save pool sprites
+            // Far ocean tiles are covered by the background rect — skip to save pool sprites
             if (tile.status === -7) continue;
             let sx = offsetX + (x - y) * halfWidth; let sy = offsetY + (x + y) * halfHeight;
 
@@ -1272,12 +1292,16 @@ function update() {
                 spr.setPosition(sx, sy).setDepth(x+y).setVisible(true);
                 activeTiles.push(spr);
 
-                if (tile.status === -6) spr.setTexture('cliff').setOrigin(0.5, 0);
+                if (tile.status === -8) { spr.setTexture('ocean').setOrigin(0.5, 0); }
+                else if (tile.status === -6) spr.setTexture('cliff').setOrigin(0.5, 0);
                 else if (tile.status === -2) spr.setTexture('mountain').setOrigin(0.5, 0.9);
                 else if (tile.status === -3) spr.setTexture('river').setOrigin(0.5, 0);
                 else if (tile.status === -4) spr.setTexture('waterfall').setOrigin(0.5, 0);
                 else spr.setTexture((x+y)%2===0 ? 'grass1' : 'grass2').setOrigin(0.5, 0);
             }
+
+            // No fog or expand signs on ocean border tiles
+            if (tile.status === -8) continue;
 
             if (!tile.unlocked && fogPool.length > 0) {
                 let fog = fogPool.pop(); fog.setPosition(sx, sy).setDepth(x+y+0.5).setVisible(true); activeFogs.push(fog);
