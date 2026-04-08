@@ -7,7 +7,7 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background-color: #2d3436;
+    background-color: #0652dd;
     font-family: 'Segoe UI', sans-serif;
     overflow: hidden;
     touch-action: none;
@@ -30,25 +30,61 @@ canvas {
     transition: opacity 1s ease;
     overflow: hidden;
 }
-#loading-enter {
-    display: none;
-    color: #fff;
-    font-size: clamp(18px, 4vw, 32px);
-    font-weight: bold;
-    text-shadow: 2px 2px 6px #5e3a2c, 0 0 20px rgba(255,220,180,0.6);
-    cursor: pointer;
-    user-select: none;
-    letter-spacing: 0.05em;
+/* 載入進度區塊 */
+#loading-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     position: relative;
     z-index: 2;
-    animation: loading-pulse 0.8s ease-in-out infinite alternate;
-    -webkit-tap-highlight-color: rgba(255,255,255,0.3);
-    touch-action: manipulation;
-    padding: 16px 24px;
+}
+
+/* 旋轉櫻花 spinner */
+#loading-spinner {
+    font-size: clamp(28px, 6vw, 52px);
+    animation: sakura-spin 1.2s linear infinite;
+    display: block;
+    filter: drop-shadow(0 0 12px rgba(255,180,220,0.8));
+}
+@keyframes sakura-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* 進度文字 */
+#loading-status {
+    color: #fff;
+    font-size: clamp(14px, 2.5vw, 20px);
+    font-weight: bold;
+    text-shadow: 1px 1px 4px #5e3a2c, 0 0 12px rgba(255,220,180,0.5);
+    letter-spacing: 0.08em;
+    animation: loading-pulse 0.9s ease-in-out infinite alternate;
 }
 @keyframes loading-pulse {
     from { opacity: 1; }
-    to { opacity: 0.3; }
+    to   { opacity: 0.4; }
+}
+
+/* 進度條 */
+#loading-bar-wrap {
+    width: clamp(160px, 40vw, 320px);
+    height: 8px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    overflow: hidden;
+}
+#loading-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ff9ff3, #ffeaa7);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* 舊的點擊按鈕保留但隱藏（邏輯改為自動進入） */
+#loading-enter {
+    display: none;
 }
 
 /* 載入畫面 — 飄落的櫻花 */

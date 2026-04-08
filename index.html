@@ -6,12 +6,17 @@
     <title>Onsen Valley | Cozy Idle Sim</title>
     <meta name="description" content="Welcome to Onsen Valley, a cozy Yokai hot spring idle sim. (療癒系妖怪溫泉放置經營遊戲)">
     
-    <link rel="stylesheet" href="css/style.css?v=1.0.19">
+    <link rel="stylesheet" href="css/style.css?v=1.0.20">
     <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <div id="debug-log" style="position:absolute; top:10px; left:10px; color:#ff7675; z-index:9999; font-size:12px; font-weight:bold; pointer-events:none; background:rgba(0,0,0,0.8); padding:5px;"></div>
     <div id="loading-screen">
+        <div id="loading-progress">
+            <div id="loading-spinner">🌸</div>
+            <div id="loading-status">載入中...</div>
+            <div id="loading-bar-wrap"><div id="loading-bar-fill"></div></div>
+        </div>
         <div id="loading-enter">【 點擊進入溫泉 】</div>
     </div>
     <script>
@@ -23,8 +28,8 @@
         };
     </script>
 
-    <script src="js/data.js?v=1.0.19"></script>
-    <script src="js/weather.js?v=1.0.19"></script>
-    <script src="js/main.js?v=1.0.19"></script>
+    <script src="js/data.js?v=1.0.20"></script>
+    <script src="js/weather.js?v=1.0.20"></script>
+    <script src="js/main.js?v=1.0.20"></script>
 </body>
 </html>

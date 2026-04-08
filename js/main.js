@@ -62,7 +62,7 @@ const config = {
     type: Phaser.AUTO, 
     width: 960,
     height: 540,
-    backgroundColor: '#2d3436', 
+    backgroundColor: '#0652dd',
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
@@ -155,9 +155,15 @@ function create() {
         soundNight = this.sound.add('bgm_night', { loop: true, volume: 0 }); 
     }
 
-    // --- [載入畫面由 HTML overlay 處理，支援全螢幕自適應] ---
-    let loadScreen = document.getElementById('loading-screen');
-    let loadEnterBtn = document.getElementById('loading-enter');
+    // --- [載入畫面 — 旋轉櫻花 spinner + 進度條 + 自動進入] ---
+    let loadScreen   = document.getElementById('loading-screen');
+    let loadStatus   = document.getElementById('loading-status');
+    let loadBarFill  = document.getElementById('loading-bar-fill');
+
+    function setLoadProgress(pct, msg) {
+        if (loadBarFill) loadBarFill.style.width = pct + '%';
+        if (loadStatus)  loadStatus.textContent  = msg;
+    }
 
     // 建立 CSS 櫻花與蒸氣粒子
     if (loadScreen) {
@@ -180,6 +186,7 @@ function create() {
             loadScreen.appendChild(s);
         }
     }
+    setLoadProgress(10, '初始化中...');
 
     // ------------------------------------
 
@@ -294,39 +301,39 @@ function create() {
         return false;
     }
 
-    // 幕後生成地圖與讀檔
+    // 幕後生成地圖與讀檔，帶進度條
     this.time.delayedCall(100, () => {
-        if (!loadGameData()) { generateNewMap(); generateQuest(); }
+        setLoadProgress(30, '讀取地圖...');
+        if (!loadGameData()) {
+            setLoadProgress(50, '生成島嶼...');
+            generateNewMap();
+            generateQuest();
+        }
+        setLoadProgress(70, '建立世界...');
     });
 
-    // 1.8秒後顯示進入遊戲按鈕
-    this.time.delayedCall(1800, () => {
+    // 自動進入：載入完成後自動開始遊戲，不需玩家點擊
+    function autoEnter() {
+        isGameLoaded = true;
         updateUI();
         if (activeExpedition) uiExpedTracker.setVisible(true);
-
-        if (loadEnterBtn) loadEnterBtn.style.display = 'block';
-
-        let entered = false;
-        let enterHandler = (e) => {
-            if (entered) return;
-            entered = true;
-            if (e && e.preventDefault) e.preventDefault();
-            isGameLoaded = true;
-            if (userSettings.music) {
-                if (soundWaterfall && !soundWaterfall.isPlaying) soundWaterfall.play();
-                if (soundDay && !soundDay.isPlaying) soundDay.play();
-                if (soundNight && !soundNight.isPlaying) soundNight.play();
-                syncRealTime();
-            }
-            if (loadScreen) {
-                loadScreen.style.opacity = '0';
-                setTimeout(() => { if (loadScreen.parentNode) loadScreen.parentNode.removeChild(loadScreen); }, 1000);
-            }
-        };
-        if (loadEnterBtn) {
-            loadEnterBtn.addEventListener('touchstart', enterHandler, { once: true, passive: false });
-            loadEnterBtn.addEventListener('click', enterHandler, { once: true });
+        if (userSettings.music) {
+            if (soundWaterfall && !soundWaterfall.isPlaying) soundWaterfall.play();
+            if (soundDay && !soundDay.isPlaying) soundDay.play();
+            if (soundNight && !soundNight.isPlaying) soundNight.play();
+            syncRealTime();
         }
+        if (loadScreen) {
+            loadScreen.style.opacity = '0';
+            setTimeout(() => { if (loadScreen && loadScreen.parentNode) loadScreen.parentNode.removeChild(loadScreen); }, 1000);
+        }
+    }
+
+    this.time.delayedCall(900, () => { setLoadProgress(85, '妖怪就位中...'); });
+    this.time.delayedCall(1400, () => { setLoadProgress(95, '溫泉加熱中...'); });
+    this.time.delayedCall(1900, () => {
+        setLoadProgress(100, '歡迎來到湯之谷！');
+        this.time.delayedCall(500, () => { autoEnter(); });
     });
 
     function updateAdjacency() {
@@ -341,7 +348,14 @@ function create() {
         }
     }
 
-    for(let i=0; i<1500; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0)); 
+    // Ocean background — fills any gaps in tile pool, always shows as ocean
+    this.add.rectangle(480, 270, 960, 540, 0x0652dd, 1).setDepth(-10).setScrollFactor(0);
+    // Subtle wave grid overlay for the ocean background
+    let waveG = this.add.graphics().setDepth(-9).setScrollFactor(0);
+    for(let wy=0; wy<540; wy+=20) { waveG.lineStyle(1, 0x0984e3, 0.3); waveG.beginPath(); waveG.moveTo(0, wy); waveG.lineTo(960, wy); waveG.strokePath(); }
+    for(let wx=0; wx<960; wx+=20) { waveG.lineStyle(1, 0x0984e3, 0.3); waveG.beginPath(); waveG.moveTo(wx, 0); waveG.lineTo(wx, 540); waveG.strokePath(); }
+
+    for(let i=0; i<1500; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
     for(let i=0; i<1500; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
     for(let i=0; i<150; i++) signPool.push(this.add.text(0,0,'💰', {fontSize:'16px'}).setVisible(false).setOrigin(0.5));
     for(let i=0; i<50; i++) villagePool.push(this.add.text(0,0,'🏯', {fontSize:'32px'}).setVisible(false).setOrigin(0.5));
@@ -692,7 +706,7 @@ function create() {
     let centerSx = offsetX + (centerGrid - centerGrid) * halfWidth;
     let centerSy = offsetY + (centerGrid + centerGrid) * halfHeight;
     selfRef.cameras.main.centerOn(centerSx, centerSy);
-    selfRef.cameras.main.setZoom(1.0); 
+    selfRef.cameras.main.setZoom(1.5);
 
     cursor = this.add.graphics().lineStyle(2, 0xffeaa7, 0.8).setDepth(1600).setVisible(false);
     cursor.beginPath(); cursor.moveTo(0, 0); cursor.lineTo(halfWidth, 16); cursor.lineTo(0, 32); cursor.lineTo(-halfWidth, 16); cursor.closePath(); cursor.strokePath();
@@ -1213,26 +1227,27 @@ function update() {
         for (let x = minGx; x <= maxGx; x++) {
             let tile = mapData[y][x];
             if(!tile) continue;
+            // Ocean tiles are covered by the background rect — skip to save pool sprites
+            if (tile.status === -7) continue;
             let sx = offsetX + (x - y) * halfWidth; let sy = offsetY + (x + y) * halfHeight;
-            
+
             if(tilePool.length > 0) {
                 let spr = tilePool.pop();
                 spr.setPosition(sx, sy).setDepth(x+y).setVisible(true);
                 activeTiles.push(spr);
-                
-                if (tile.status === -7) spr.setTexture('ocean').setOrigin(0.5, 0);
-                else if (tile.status === -6) spr.setTexture('cliff').setOrigin(0.5, 0);
+
+                if (tile.status === -6) spr.setTexture('cliff').setOrigin(0.5, 0);
                 else if (tile.status === -2) spr.setTexture('mountain').setOrigin(0.5, 0.9);
                 else if (tile.status === -3) spr.setTexture('river').setOrigin(0.5, 0);
                 else if (tile.status === -4) spr.setTexture('waterfall').setOrigin(0.5, 0);
                 else spr.setTexture((x+y)%2===0 ? 'grass1' : 'grass2').setOrigin(0.5, 0);
             }
 
-            if (!tile.unlocked && tile.status !== -7 && fogPool.length > 0) {
+            if (!tile.unlocked && fogPool.length > 0) {
                 let fog = fogPool.pop(); fog.setPosition(sx, sy).setDepth(x+y+0.5).setVisible(true); activeFogs.push(fog);
             }
 
-            if (!tile.unlocked && tile.isAdj && tile.status !== -5 && tile.status !== -6 && tile.status !== -7 && signPool.length > 0) {
+            if (!tile.unlocked && tile.isAdj && tile.status !== -5 && tile.status !== -6 && signPool.length > 0) {
                 let sign = signPool.pop(); sign.setPosition(sx, sy-10).setDepth(x+y+0.6).setVisible(true); activeSigns.push(sign);
             }
 
