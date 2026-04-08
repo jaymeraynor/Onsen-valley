@@ -58,16 +58,16 @@ function showFloatingText(x, y, text, color, fontSize = '18px', isFixed = false)
 }
 
 // --- [增加手機版自動縮放適配] ---
-const config = { 
-    type: Phaser.AUTO, 
+const config = {
+    type: Phaser.AUTO,
     width: 960,
     height: 540,
     backgroundColor: '#0652dd',
     scale: {
-        mode: Phaser.Scale.FIT,
+        mode: Phaser.Scale.EXPAND,
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
-    scene: { preload: preload, create: create, update: update } 
+    scene: { preload: preload, create: create, update: update }
 };
 const game = new Phaser.Game(config);
 
@@ -352,15 +352,15 @@ function create() {
         }
     }
 
-    // Ocean background — fills any gaps in tile pool, always shows as ocean
-    this.add.rectangle(480, 270, 960, 540, 0x0652dd, 1).setDepth(-10).setScrollFactor(0);
+    // Ocean background — fills full canvas including expanded area
+    let oceanBg = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0652dd, 1).setDepth(-10).setScrollFactor(0).setOrigin(0, 0);
 
     for(let i=0; i<1500; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
     for(let i=0; i<1500; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
     for(let i=0; i<150; i++) signPool.push(this.add.text(0,0,'💰', {fontSize:'16px'}).setVisible(false).setOrigin(0.5));
     for(let i=0; i<50; i++) villagePool.push(this.add.text(0,0,'🏯', {fontSize:'32px'}).setVisible(false).setOrigin(0.5));
 
-    nightOverlay = this.add.rectangle(480, 270, 960, 540, 0x0a3d62, 0).setDepth(1800).setScrollFactor(0);
+    nightOverlay = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x0a3d62, 0).setDepth(1800).setScrollFactor(0).setOrigin(0.5, 0.5);
 
     // [模組化] 初始化天氣系統
     if (typeof WeatherSystem !== 'undefined') {
@@ -419,7 +419,8 @@ function create() {
         if (shopPanel && shopPanel.visible) { shopPanel.setVisible(false); shopPanelBtns.forEach(b=>b.setVisible(false)); }
 
         // Container holds ONLY non-interactive visuals
-        settingsPanel = selfRef.add.container(480, 270).setDepth(4000).setScrollFactor(0);
+        let W = selfRef.scale.width, H = selfRef.scale.height;
+        settingsPanel = selfRef.add.container(W/2, H/2).setDepth(4000).setScrollFactor(0);
         let bg = selfRef.add.rectangle(0, 0, 420, 380, 0x2c3e50, 0.95).setStrokeStyle(4, 0xbdc3c7).setInteractive();
         let title = selfRef.add.text(0, -150, '⚙️ Settings', { fontSize: '24px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
         let langLabel = selfRef.add.text(-170, -70, '🌐 Language:', { fontSize: '18px', fill: '#fff' });
@@ -430,15 +431,16 @@ function create() {
         settingsPanel.add([bg, title, langLabel, muLabel, sfxLabel, vfxLabel, vfxDesc]);
         settingsPanelBtns = [];
 
-        // All interactive buttons added DIRECTLY to scene (not container) for reliable hit detection
-        let closeBtn = selfRef.add.text(650, 120, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive().setDepth(4001).setScrollFactor(0);
+        // Interactive buttons at scene level, positions relative to screen center
+        let cx = W/2, cy = H/2;
+        let closeBtn = selfRef.add.text(cx + 170, cy - 150, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive().setDepth(4001).setScrollFactor(0);
         closeBtn.on('pointerdown', () => {
             if(settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; }
             settingsPanelBtns.forEach(b => b.destroy()); settingsPanelBtns = [];
         });
         settingsPanelBtns.push(closeBtn);
 
-        let langBtn = selfRef.add.text(560, 200, currentLang.toUpperCase(), { fontSize: '18px', fill: '#f1c40f', backgroundColor: '#34495e', padding:{x:15,y:8} }).setOrigin(0, 0.5).setInteractive().setDepth(4001).setScrollFactor(0);
+        let langBtn = selfRef.add.text(cx + 80, cy - 70, currentLang.toUpperCase(), { fontSize: '18px', fill: '#f1c40f', backgroundColor: '#34495e', padding:{x:15,y:8} }).setOrigin(0, 0.5).setInteractive().setDepth(4001).setScrollFactor(0);
         langBtn.on('pointerdown', () => {
             let idx = availableLangs.indexOf(currentLang);
             currentLang = availableLangs[(idx + 1) % availableLangs.length];
@@ -450,8 +452,8 @@ function create() {
         });
         settingsPanelBtns.push(langBtn);
 
-        function makeToggle(screenX, screenY, key) {
-            let btn = selfRef.add.text(screenX, screenY, userSettings[key] ? '✅ ON' : '❌ OFF', { fontSize: '18px', fill: '#fff', backgroundColor: userSettings[key] ? '#27ae60' : '#c0392b', padding:{x:15,y:8} }).setOrigin(0, 0.5).setInteractive().setDepth(4001).setScrollFactor(0);
+        function makeToggle(offY, key) {
+            let btn = selfRef.add.text(cx + 80, cy + offY, userSettings[key] ? '✅ ON' : '❌ OFF', { fontSize: '18px', fill: '#fff', backgroundColor: userSettings[key] ? '#27ae60' : '#c0392b', padding:{x:15,y:8} }).setOrigin(0, 0.5).setInteractive().setDepth(4001).setScrollFactor(0);
             btn.on('pointerdown', () => {
                 userSettings[key] = !userSettings[key];
                 saveSettings();
@@ -461,9 +463,9 @@ function create() {
             });
             settingsPanelBtns.push(btn);
         }
-        makeToggle(560, 260, 'music');
-        makeToggle(560, 320, 'sfx');
-        makeToggle(560, 380, 'vfx');
+        makeToggle(-10, 'music');
+        makeToggle(50, 'sfx');
+        makeToggle(110, 'vfx');
     }
 
     function saveSettings() { localStorage.setItem('yokai_settings', JSON.stringify(userSettings)); }
@@ -502,9 +504,10 @@ function create() {
         }
         if (rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; rosterPanelBtns.forEach(b=>b.destroy()); rosterPanelBtns=[]; }
         if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; settingsPanelBtns.forEach(b=>b.destroy()); settingsPanelBtns=[]; }
+        let W = selfRef.scale.width, H = selfRef.scale.height;
         dexPanel = selfRef.add.container(0, 0).setDepth(3000).setScrollFactor(0);
-        let bg = selfRef.add.rectangle(480, 270, 960, 540, 0x000000, 0.85).setInteractive();
-        let title = selfRef.add.text(480, 50, t('btnDex'), { fontSize: '32px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
+        let bg = selfRef.add.rectangle(W/2, H/2, W, H, 0x000000, 0.85).setInteractive();
+        let title = selfRef.add.text(W/2, 50, t('btnDex'), { fontSize: '32px', fill: '#fbc531', fontStyle: 'bold' }).setOrigin(0.5);
         dexPanel.add([bg, title]);
         yokaiDatabase.forEach((yokai, index) => {
             let rowY = 120 + index * 90;
@@ -515,7 +518,7 @@ function create() {
             let descTxt = selfRef.add.text(250, rowY + 5, descStr, { fontSize: '14px', fill: '#b2bec3', wordWrap: { width: 450 } });
             dexPanel.add([avatar, nameTxt, descTxt]);
         });
-        let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive().setDepth(3001).setScrollFactor(0);
+        let closeBtn = selfRef.add.text(W - 40, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive().setDepth(3001).setScrollFactor(0);
         closeBtn.on('pointerdown', () => {
             if(dexPanel) { dexPanel.destroy(true); dexPanel = null; }
             dexPanelBtns.forEach(b => b.destroy()); dexPanelBtns = [];
@@ -531,13 +534,14 @@ function create() {
         }
         if (dexPanel) { dexPanel.destroy(true); dexPanel = null; dexPanelBtns.forEach(b=>b.destroy()); dexPanelBtns=[]; }
         if (settingsPanel) { settingsPanel.destroy(true); settingsPanel = null; settingsPanelBtns.forEach(b=>b.destroy()); settingsPanelBtns=[]; }
+        let W = selfRef.scale.width, H = selfRef.scale.height;
         rosterPanel = selfRef.add.container(0, 0).setDepth(3000).setScrollFactor(0);
-        let bg = selfRef.add.rectangle(480, 270, 960, 540, 0x1a252f, 0.95).setInteractive();
-        let title = selfRef.add.text(480, 50, '🎒 Roster', { fontSize: '32px', fill: '#ff9ff3', fontStyle: 'bold' }).setOrigin(0.5);
+        let bg = selfRef.add.rectangle(W/2, H/2, W, H, 0x1a252f, 0.95).setInteractive();
+        let title = selfRef.add.text(W/2, 50, '🎒 Roster', { fontSize: '32px', fill: '#ff9ff3', fontStyle: 'bold' }).setOrigin(0.5);
         rosterPanel.add([bg, title]);
 
         if (ownedYokais.length === 0) {
-            rosterPanel.add(selfRef.add.text(480, 270, 'Empty Roster.', { fontSize: '20px', fill: '#b2bec3', align: 'center', lineSpacing: 10 }).setOrigin(0.5));
+            rosterPanel.add(selfRef.add.text(W/2, H/2, 'Empty Roster.', { fontSize: '20px', fill: '#b2bec3', align: 'center', lineSpacing: 10 }).setOrigin(0.5));
         } else {
             ownedYokais.forEach((yokai, index) => {
                 let col = index % 2; let row = Math.floor(index / 2);
@@ -551,7 +555,7 @@ function create() {
                 rosterPanel.add([cardBg, avatar, nameTxt, rarityTxt, traitTxt]);
             });
         }
-        let closeBtn = selfRef.add.text(920, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive().setDepth(3001).setScrollFactor(0);
+        let closeBtn = selfRef.add.text(W - 40, 50, '✖', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setInteractive().setDepth(3001).setScrollFactor(0);
         closeBtn.on('pointerdown', () => {
             if(rosterPanel) { rosterPanel.destroy(true); rosterPanel = null; }
             rosterPanelBtns.forEach(b => b.destroy()); rosterPanelBtns = [];
@@ -979,7 +983,7 @@ function create() {
         graphics.fillStyle(c.w, 0.9); graphics.beginPath(); graphics.moveTo(sx, sy); graphics.lineTo(sx+halfWidth*v*0.8, sy+16); graphics.lineTo(sx, sy+32); graphics.lineTo(sx-halfWidth*v*0.8, sy+16); graphics.closePath(); graphics.fillPath();
     }
 
-    shopPanel = this.add.container(480, 270).setDepth(3000).setScrollFactor(0).setVisible(false);
+    shopPanel = this.add.container(this.scale.width/2, this.scale.height/2).setDepth(3000).setScrollFactor(0).setVisible(false);
     let shopBg = this.add.rectangle(0, 0, 600, 450, 0x2d3436, 0.95).setStrokeStyle(4, 0xf39c12).setInteractive();
     shopPanel.add([shopBg, this.add.text(0, -190, t('shopTitle'), { fontSize:'28px', fontStyle:'bold' }).setOrigin(0.5)]);
     itemDatabase.forEach((item, i) => {
@@ -990,25 +994,29 @@ function create() {
         shopPanel.add(this.add.text(120, rowY, priceTxt, { fontSize:'16px', fill:'#f1c40f' }).setOrigin(0.5));
     });
 
-    // Interactive shop buttons added directly to scene (not container) for reliable input
-    let shopClose = this.add.text(740, 70, '✖', { fontSize:'28px', fill:'#fff' }).setInteractive().setDepth(3001).setScrollFactor(0).setVisible(false);
-    shopClose.on('pointerdown', () => {
-        shopPanel.setVisible(false);
-        shopPanelBtns.forEach(b => b.setVisible(false));
-    });
-    shopPanelBtns.push(shopClose);
-    itemDatabase.forEach((item, i) => {
-        let screenY = 270 + (-120 + i * 55);
-        let buyBtn = this.add.text(700, screenY, `[ ${t('buy')} ]`, { fontSize:'16px', fill:'#55efc4' }).setInteractive().setDepth(3001).setScrollFactor(0).setVisible(false);
-        buyBtn.on('pointerdown', () => {
-            activeShopItem = item;
-            shopPanel.setVisible(false);
-            shopPanelBtns.forEach(b => b.setVisible(false));
-            uiBuildCancel.setVisible(true);
-            updateUI();
+    // Interactive shop buttons at scene level; positions computed from current scale
+    let buildShopBtns = () => {
+        let W = selfRef.scale.width, H = selfRef.scale.height;
+        shopPanel.setPosition(W/2, H/2);
+        // close button
+        let shopClose = selfRef.add.text(W/2 + 260, H/2 - 200, '✖', { fontSize:'28px', fill:'#fff' }).setInteractive().setDepth(3001).setScrollFactor(0).setVisible(false);
+        shopClose.on('pointerdown', () => { shopPanel.setVisible(false); shopPanelBtns.forEach(b => b.setVisible(false)); });
+        shopPanelBtns.push(shopClose);
+        // buy buttons
+        itemDatabase.forEach((item, i) => {
+            let btnY = H/2 + (-120 + i * 55);
+            let buyBtn = selfRef.add.text(W/2 + 220, btnY, `[ ${t('buy')} ]`, { fontSize:'16px', fill:'#55efc4' }).setInteractive().setDepth(3001).setScrollFactor(0).setVisible(false);
+            buyBtn.on('pointerdown', () => {
+                activeShopItem = item;
+                shopPanel.setVisible(false);
+                shopPanelBtns.forEach(b => b.setVisible(false));
+                uiBuildCancel.setVisible(true);
+                updateUI();
+            });
+            shopPanelBtns.push(buyBtn);
         });
-        shopPanelBtns.push(buyBtn);
-    });
+    };
+    buildShopBtns();
 
     function startUpgrade(targetPool, nextLevel) {
         let buildDuration = getBuildTime(nextLevel); let endTime = Date.now() + (buildDuration*1000);
@@ -1173,15 +1181,34 @@ function create() {
     btnFriend.on('pointerdown', () => {
         if(!isGameLoaded) return;
         if(friendCooldown<=0) {
-            let assistExp = Math.max(1, playerLevel + Math.floor(Math.random()*3) - 1) * 30; 
+            let assistExp = Math.max(1, playerLevel + Math.floor(Math.random()*3) - 1) * 30;
             selfRef.addExp(assistExp); selfRef.cameras.main.fadeOut(200,0,0,0);
             selfRef.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-                showFloatingText(480, 270, `🤝\n+${assistExp} EXP`, '#55efc4', '24px', true); selfRef.cameras.main.fadeIn(300,0,0,0);
+                showFloatingText(selfRef.scale.width/2, selfRef.scale.height/2, `🤝\n+${assistExp} EXP`, '#55efc4', '24px', true); selfRef.cameras.main.fadeIn(300,0,0,0);
             });
             friendCooldown = 45; btnFriend.setText(`${friendCooldown}s`);
         }
     });
     this.time.addEvent({ delay: 1000, loop: true, callback: () => { if(friendCooldown>0){ friendCooldown--; if(friendCooldown<=0) btnFriend.setText('🤝'); else btnFriend.setText(`${friendCooldown}s`); } }});
+
+    // --- [視窗縮放自動重新定位 UI] ---
+    function repositionUI(W, H) {
+        let R = W - 100; // right-side anchor
+        btnShopUI.setPosition(R, 110);
+        btnRosterUI.setPosition(R, 170);
+        btnFriend.setPosition(R, 230);
+        uiTime.setPosition(W - 240, 15);
+        btnTimeToggle.setPosition(W - 240, 45);
+        uiBuildCancel.setPosition(W / 2, 70);
+        uiSaveSync.setPosition(W - 10, H - 10);
+        uiPlayerLvl.setPosition(W / 2 - 130, 15);
+        nightOverlay.setPosition(W / 2, H / 2).setSize(W + 100, H + 100);
+        oceanBg.setSize(W + 100, H + 100);
+    }
+    repositionUI(this.scale.width, this.scale.height);
+    this.scale.on('resize', (gameSize) => {
+        repositionUI(gameSize.width, gameSize.height);
+    });
 }
 
 function update() {
