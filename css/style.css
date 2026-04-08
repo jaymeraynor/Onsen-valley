@@ -12,6 +12,9 @@ body {
 canvas {
     box-shadow: 0 0 40px rgba(0,0,0,0.8);
     border-radius: 8px;
+    max-width: 100vw;
+    max-height: 100vh;
+    display: block;
 }
 #loading-screen {
     position: fixed;
@@ -25,6 +28,7 @@ canvas {
     padding-bottom: 8vh;
     box-sizing: border-box;
     transition: opacity 1s ease;
+    overflow: hidden;
 }
 #loading-enter {
     display: none;
@@ -35,6 +39,8 @@ canvas {
     cursor: pointer;
     user-select: none;
     letter-spacing: 0.05em;
+    position: relative;
+    z-index: 2;
     animation: loading-pulse 0.8s ease-in-out infinite alternate;
     -webkit-tap-highlight-color: rgba(255,255,255,0.3);
     touch-action: manipulation;
@@ -43,4 +49,37 @@ canvas {
 @keyframes loading-pulse {
     from { opacity: 1; }
     to { opacity: 0.3; }
+}
+
+/* 載入畫面 — 飄落的櫻花 */
+.loading-sakura {
+    position: absolute;
+    pointer-events: none;
+    font-size: clamp(12px, 2.5vw, 22px);
+    top: -30px;
+    animation: sakura-fall linear infinite;
+    z-index: 1;
+}
+@keyframes sakura-fall {
+    0%   { transform: translateY(-30px) rotate(0deg);   opacity: 0.9; }
+    80%  { opacity: 0.7; }
+    100% { transform: translateY(110vh) rotate(540deg); opacity: 0; }
+}
+
+/* 載入畫面 — 溫泉蒸氣 */
+.loading-steam {
+    position: absolute;
+    pointer-events: none;
+    width: clamp(8px, 1.5vw, 16px);
+    height: clamp(8px, 1.5vw, 16px);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    filter: blur(4px);
+    animation: steam-rise ease-out infinite;
+    z-index: 1;
+}
+@keyframes steam-rise {
+    0%   { transform: translateY(0)     scale(1); opacity: 0.7; }
+    60%  { opacity: 0.35; }
+    100% { transform: translateY(-18vh) scale(3.5); opacity: 0; }
 }

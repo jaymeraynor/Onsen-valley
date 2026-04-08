@@ -154,6 +154,31 @@ function create() {
     // --- [載入畫面由 HTML overlay 處理，支援全螢幕自適應] ---
     let loadScreen = document.getElementById('loading-screen');
     let loadEnterBtn = document.getElementById('loading-enter');
+
+    // 建立 CSS 櫻花與蒸氣粒子
+    if (loadScreen) {
+        for (let i = 0; i < 20; i++) {
+            let p = document.createElement('div');
+            p.className = 'loading-sakura';
+            p.textContent = '🌸';
+            p.style.left = (Math.random() * 110 - 5) + '%';
+            p.style.animationDuration = (4 + Math.random() * 5) + 's';
+            p.style.animationDelay  = -(Math.random() * 8) + 's';
+            loadScreen.appendChild(p);
+        }
+        for (let i = 0; i < 8; i++) {
+            let s = document.createElement('div');
+            s.className = 'loading-steam';
+            s.style.left   = (32 + Math.random() * 36) + '%';
+            s.style.bottom = (22 + Math.random() * 22) + '%';
+            s.style.animationDuration = (2 + Math.random() * 2.5) + 's';
+            s.style.animationDelay    = -(Math.random() * 3) + 's';
+            loadScreen.appendChild(s);
+        }
+    }
+
+    // 瀏覽器縮放時重新計算 canvas 尺寸
+    window.addEventListener('resize', () => { this.scale.refresh(); }, { passive: true });
     // ------------------------------------
 
     function generateNewMap() {
