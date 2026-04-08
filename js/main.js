@@ -156,7 +156,7 @@ function create() {
     // 確保圖片載入後能等比縮放覆蓋畫面
     let scaleX = 800 / (loadBg.width || 800); 
     let scaleY = 600 / (loadBg.height || 600);
-    let finalScale = Math.max(scaleX, scaleY);
+    let finalScale = Math.min(scaleX, scaleY);
     loadBg.setScale(finalScale);
     
     this.tweens.add({ targets: loadBg, scale: finalScale * 1.03, yoyo: true, repeat: -1, duration: 4000, ease: 'Sine.easeInOut' });
