@@ -788,7 +788,7 @@ function create() {
     let pinchStartDist = -1; let initialZoom = 1; let pointerDownPos = { x: 0, y: 0 }; let lastDragGrid = { x: -1, y: -1 };
 
     function attemptPlaceItem(p) {
-        if (p.x < 240 && p.y < 300) return; if (p.y < 120 && p.x > 300 && p.x < 500) return; if (p.y < 80 && p.x > 500) return; if (p.x > 620) return; 
+        // No pixel-space guards needed — UI is now in the HTML overlay which intercepts its own clicks
 
         let tapIsoX = (p.worldX - offsetX) / halfWidth; let tapIsoY = (p.worldY - offsetY) / halfHeight;
         let clickGx = Math.floor((tapIsoY + tapIsoX) / 2); let clickGy = Math.floor((tapIsoY - tapIsoX) / 2);
@@ -859,8 +859,7 @@ function create() {
         pinchStartDist = -1; lastDragGrid = { x: -1, y: -1 };
         if (activeShopItem || Math.abs(p.x - p.downX) > 15 || Math.abs(p.y - p.downY) > 15) return; 
         if (dexPanel || rosterPanel || settingsPanel || expedPanel || (shopPanel && shopPanel.visible)) return; 
-        if (p.x < 240 && p.y < 300) return; if (p.y < 80 && p.x > 450 && p.x < 650) return; if (p.x > 590) return; 
-
+        // No pixel-space guards — UI is HTML overlay, canvas receives only game-area clicks
         let tapIsoX = (p.worldX - offsetX) / halfWidth; let tapIsoY = (p.worldY - offsetY) / halfHeight;
         let clickGx = Math.floor((tapIsoY + tapIsoX) / 2); let clickGy = Math.floor((tapIsoY - tapIsoX) / 2);
 
