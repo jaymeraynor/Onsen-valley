@@ -151,34 +151,9 @@ function create() {
         soundNight = this.sound.add('bgm_night', { loop: true, volume: 0 }); 
     }
 
-    // --- [史詩級動態載入畫面：VFX 魔術] ---
-    let loadOverlay = this.add.rectangle(400, 300, 800, 600, 0x2d3436).setDepth(99997).setScrollFactor(0);
-    let loadBg = this.add.image(400, 300, 'loading_bg').setDepth(99998).setScrollFactor(0);
-    // 確保圖片載入後能等比縮放覆蓋畫面
-    let scaleX = 800 / (loadBg.width || 800); 
-    let scaleY = 600 / (loadBg.height || 600);
-    let finalScale = Math.min(scaleX, scaleY) * 0.92;
-    loadBg.setScale(finalScale);
-    
-    this.tweens.add({ targets: loadBg, scale: finalScale * 1.03, yoyo: true, repeat: -1, duration: 4000, ease: 'Sine.easeInOut' });
-
-    let loadSteam = this.add.particles(400, 400, 'steamTexture', {
-        speed: { min: 10, max: 30 }, angle: { min: 250, max: 290 },
-        scale: { start: 1.0, end: 4.0 }, alpha: { start: 0.6, end: 0 },
-        lifespan: 3500, frequency: 150, blendMode: 'ADD'
-    }).setDepth(99999).setScrollFactor(0);
-
-    let loadSakura = this.add.particles(0, 0, 'sakuraParticle', {
-        x: { min: -200, max: 800 }, y: -50,
-        lifespan: 6000, speedY: { min: 30, max: 80 }, speedX: { min: 30, max: 80 },
-        rotate: { min: 0, max: 360 }, scale: { min: 0.6, max: 1.5 }, alpha: { start: 1, end: 0 },
-        quantity: 1, blendMode: 'NORMAL'
-    }).setDepth(99999).setScrollFactor(0);
-
-    let loadText = this.add.text(400, 520, '【 點擊進入溫泉 】', { 
-        fontSize: '32px', fill: '#fff', fontStyle: 'bold', 
-        stroke: '#5e3a2c', strokeThickness: 6, align: 'center' 
-    }).setOrigin(0.5).setDepth(100000).setScrollFactor(0).setInteractive({ useHandCursor: true }).setVisible(false);
+    // --- [載入畫面由 HTML overlay 處理，支援全螢幕自適應] ---
+    let loadScreen = document.getElementById('loading-screen');
+    let loadEnterBtn = document.getElementById('loading-enter');
     // ------------------------------------
 
     function generateNewMap() {
@@ -278,28 +253,23 @@ function create() {
     this.time.delayedCall(1800, () => {
         updateUI();
         if (activeExpedition) uiExpedTracker.setVisible(true);
-        
-        loadText.setVisible(true);
-        this.tweens.add({ targets: loadText, alpha: 0.3, yoyo: true, repeat: -1, duration: 800 });
 
-        loadText.once('pointerdown', () => {
-            isGameLoaded = true; 
+        if (loadEnterBtn) loadEnterBtn.style.display = 'block';
+
+        let enterHandler = () => {
+            isGameLoaded = true;
             if (userSettings.music) {
                 if (soundWaterfall && !soundWaterfall.isPlaying) soundWaterfall.play();
                 if (soundDay && !soundDay.isPlaying) soundDay.play();
                 if (soundNight && !soundNight.isPlaying) soundNight.play();
-                syncRealTime(); 
+                syncRealTime();
             }
-            
-            this.tweens.add({
-                targets: [loadOverlay, loadBg, loadText], alpha: 0, duration: 1000,
-                onComplete: () => {
-                    selfRef.tweens.killTweensOf(loadBg); selfRef.tweens.killTweensOf(loadText);
-                    loadSteam.destroy(); loadSakura.destroy();
-                    loadOverlay.destroy(); loadBg.destroy(); loadText.destroy();
-                }
-            });
-        });
+            if (loadScreen) {
+                loadScreen.style.opacity = '0';
+                setTimeout(() => { if (loadScreen.parentNode) loadScreen.parentNode.removeChild(loadScreen); }, 1000);
+            }
+        };
+        if (loadEnterBtn) loadEnterBtn.addEventListener('click', enterHandler, { once: true });
     });
 
     function updateAdjacency() {

@@ -11,6 +11,9 @@
 </head>
 <body>
     <div id="debug-log" style="position:absolute; top:10px; left:10px; color:#ff7675; z-index:9999; font-size:12px; font-weight:bold; pointer-events:none; background:rgba(0,0,0,0.8); padding:5px;"></div>
+    <div id="loading-screen">
+        <div id="loading-enter">【 點擊進入溫泉 】</div>
+    </div>
     <script>
         window.onerror = function(msg, url, line, col, error) {
             var errStr = error ? error.stack : msg;
