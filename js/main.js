@@ -14,6 +14,12 @@ let activeShopItem = null, timeMode = 'auto', activeExpedition = null;
 let ownedYokais = [];
 let unlockedIslands = [0];
 
+// ── 每日登入 & 召喚系統 ─────────────────────────────────────────────
+let lastLoginDate   = null;   // 'Mon Apr 07 2026' (Date.toDateString)
+let loginStreak     = 0;
+let lastFreeDrawDate = null;  // 上次每日免費抽的日期
+let gachaPity       = 0;      // 累計抽次(未出SSR)，10次保底
+
 let isGameLoaded = false; 
 
 let gridSize = 400;
@@ -58,6 +64,7 @@ function updateHTMLLang() {
     hText('hbtn-roster',   t('btnRoster'));
     hText('hbtn-friend',   t('btnFriend'));
     hText('hbtn-time',     t('timeAuto'));
+    hText('hbtn-gacha',    t('btnGacha'));
 }
 
 // HTML UI helpers — update fixed overlay elements without touching Phaser camera
@@ -299,10 +306,14 @@ function create() {
                 let data = JSON.parse(savedDataStr);
                 tutorialStep = data.tutorialStep !== undefined ? data.tutorialStep : 0;
                 score = data.score; premiumCoin = data.premiumCoin; playerLevel = data.playerLevel; playerExp = data.playerExp;
-                questStats = data.questStats || { yokaiServed: 0, buildCount: 0, expandCount: 0, decorCount: 0 }; 
+                questStats = data.questStats || { yokaiServed: 0, buildCount: 0, expandCount: 0, decorCount: 0 };
                 currentQuest = data.currentQuest || currentQuest;
                 ownedYokais = data.ownedYokais || [];
                 unlockedIslands = data.unlockedIslands || [0];
+                lastLoginDate  = data.lastLoginDate  || null;
+                loginStreak    = data.loginStreak    || 0;
+                lastFreeDrawDate = data.lastFreeDrawDate || null;
+                gachaPity      = data.gachaPity      || 0;
                 yokaiDatabase.forEach((y, i) => { if (data.dex[i]) { y.unlocked = data.dex[i].unlocked; y.affection = data.dex[i].affection; } });
                 mapData = data.mapData.map(row => row.map(t => ({ status: t[0], unlocked: t[1] === 1, isAdj: t[2] === 1 })));
 
@@ -387,6 +398,7 @@ function create() {
         isGameLoaded = true;
         updateUI();
         updateHTMLLang();
+        checkDailyLogin();
         // Show fixed HTML buttons now that game is ready
         let htmlUi = document.getElementById('html-ui');
         if (htmlUi) htmlUi.style.display = 'block';
@@ -700,6 +712,7 @@ function create() {
         let saveData = {
             tutorialStep: tutorialStep,
             score: score, premiumCoin: premiumCoin, playerLevel: playerLevel, playerExp: playerExp, questStats: questStats, currentQuest: currentQuest, ownedYokais: ownedYokais, unlockedIslands: unlockedIslands,
+            lastLoginDate, loginStreak, lastFreeDrawDate, gachaPity,
             dex: yokaiDatabase.map(y => ({ unlocked: y.unlocked, affection: y.affection })),
             mapData: mapData.map(row => row.map(t => [t.status, t.unlocked ? 1 : 0, t.isAdj ? 1 : 0])),
             pools: pools.map(p => ({ x: p.gridX, y: p.gridY, lvl: p.level, state: p.state, timeLeft: p.timeLeft, total: p.totalBuildTime, occ: p.occupants, res: p.reserved, max: p.maxOccupants })),
@@ -1309,6 +1322,66 @@ function create() {
     });
     this.time.addEvent({ delay: 1000, loop: true, callback: () => { if(friendCooldown>0){ friendCooldown--; if(friendCooldown<=0) btnFriend.setText('🤝'); else btnFriend.setText(`${friendCooldown}s`); } }});
 
+    // ── 每日登入系統 ───────────────────────────────────────────────
+    function checkDailyLogin() {
+        let today = new Date().toDateString();
+        if (lastLoginDate === today) return; // 今天已登入
+        let yesterday = new Date(Date.now() - 86400000).toDateString();
+        loginStreak = (lastLoginDate === yesterday) ? loginStreak + 1 : 1;
+        lastLoginDate = today;
+        selfRef.time.delayedCall(800, () => showLoginPanel());
+    }
+
+    function showLoginPanel() {
+        let el = document.getElementById('login-modal');
+        if (!el) return;
+        let day = ((loginStreak - 1) % 7); // 0-based index into loginRewardTable
+        let reward = loginRewardTable[day];
+        // 建立7天格
+        let grid = document.getElementById('login-day-grid');
+        grid.innerHTML = '';
+        for (let i = 0; i < 7; i++) {
+            let r = loginRewardTable[i];
+            let box = document.createElement('div');
+            let isCurrent = i === day;
+            let isPast = i < day;
+            box.className = 'login-day-box' + (isCurrent ? ' today' : '') + (isPast ? ' claimed' : '');
+            box.innerHTML = `<div class="login-day-num">Day ${i+1}</div><div class="login-day-icon">${r.icon}</div><div class="login-day-lbl">${r.label[currentLang] || r.label['en']}</div>`;
+            grid.appendChild(box);
+        }
+        document.getElementById('login-streak-num').textContent = loginStreak;
+        document.getElementById('login-today-reward').textContent = reward.label[currentLang] || reward.label['en'];
+        document.getElementById('login-claim-btn').textContent = t('loginClaim');
+        document.getElementById('login-modal-title').textContent = t('loginTitle');
+        el.style.display = 'flex';
+    }
+
+    // ── 召喚(抽卡)系統 ─────────────────────────────────────────────
+    function doGachaDraw(results) {
+        // 應用抽到的妖怪
+        results.forEach(yokai => { if (!yokai.unlocked) yokai.unlocked = true; });
+        updateUI();
+        // 顯示結果卡片
+        let area = document.getElementById('gacha-result-area');
+        area.innerHTML = '';
+        results.forEach((yokai, idx) => {
+            let card = document.createElement('div');
+            let rarityClass = yokai.rarity.toLowerCase();
+            card.className = `gacha-card ${rarityClass}`;
+            card.style.animationDelay = `${idx * 0.1}s`;
+            let isNew = (results.filter(r => r.id === yokai.id).indexOf(yokai) === 0 && !yokai._wasUnlocked);
+            card.innerHTML = `<div class="card-emoji">${yokai.emoji}</div><div class="card-name">${yokai.name[currentLang]||yokai.name.en}</div><div class="card-rarity ${rarityClass}">${yokai.rarity} ${'★'.repeat(yokai.rarity==='SSR'?3:yokai.rarity==='SR'?2:1)}</div>${isNew?`<div class="card-new">${t('gachaNew')}</div>`:''}`;
+            area.appendChild(card);
+        });
+        // 更新保底計數
+        document.getElementById('gacha-pity-num').textContent = gachaPity;
+        // 有SSR就閃光
+        if (results.some(y => y.rarity === 'SSR')) {
+            selfRef.cameras.main.flash(600, 255, 220, 50, 0.6);
+            showFloatingText(selfRef.scale.width/2, selfRef.scale.height/3, '✨ S級！', '#f1c40f', '32px', true);
+        }
+    }
+
     // --- [HTML UI 橋接 — 讓固定 HTML 按鈕呼叫 Phaser 內部函式] ---
     window.GameAPI = {
         toggleBuild:  () => uiMode.emit('pointerdown'),
@@ -1321,6 +1394,65 @@ function create() {
         topup:        () => { if (!isGameLoaded) return; premiumCoin += 50; updateUI(); showFloatingText(selfRef.scale.width/2, 80, '+50 💎', '#81ecec', '18px', true); },
         cancelBuild:  () => { if (!isGameLoaded) return; activeShopItem = null; hShow('hud-cancel', false); updateUI(); },
         openExped:    () => doExpedAction(),
+
+        // 每日登入
+        claimLogin: () => {
+            if (!isGameLoaded) return;
+            let day = ((loginStreak - 1) % 7);
+            let reward = loginRewardTable[day];
+            score += reward.acorn; premiumCoin += reward.gem; updateUI();
+            if (reward.acorn > 0) showFloatingText(selfRef.scale.width/2, selfRef.scale.height/2, `+${reward.acorn} 🌰`, '#fbc531', '24px', true);
+            if (reward.gem > 0)   showFloatingText(selfRef.scale.width/2, selfRef.scale.height/2-40, `+${reward.gem} 💎`, '#81ecec', '24px', true);
+            document.getElementById('login-modal').style.display = 'none';
+        },
+
+        // 召喚面板
+        openGacha: () => {
+            if (!isGameLoaded) return;
+            let today = new Date().toDateString();
+            let freeAvail = lastFreeDrawDate !== today;
+            let btn = document.getElementById('gacha-btn-free');
+            if (btn) { btn.disabled = !freeAvail; btn.textContent = freeAvail ? t('gachaFree') : `✅ ${t('loginDone')}`; }
+            document.getElementById('gacha-pity-num').textContent = gachaPity;
+            document.getElementById('gacha-result-area').innerHTML = '';
+            document.getElementById('gacha-modal-title').textContent = t('gachaTitle');
+            document.getElementById('gacha-rates-text').textContent = t('gachaRates');
+            document.getElementById('gacha-btn-single').textContent = t('gachaSingle');
+            document.getElementById('gacha-btn-ten').textContent = t('gachaTen');
+            document.getElementById('gacha-btn-close').textContent = t('gachaClose');
+            document.getElementById('gacha-pity-label').textContent = t('gachaPityLabel');
+            document.getElementById('gacha-modal').style.display = 'flex';
+        },
+        closeGacha: () => { document.getElementById('gacha-modal').style.display = 'none'; },
+
+        // 抽卡邏輯
+        gachaDraw: (count, isFree = false) => {
+            if (!isGameLoaded) return;
+            let today = new Date().toDateString();
+            if (isFree) {
+                if (lastFreeDrawDate === today) { showFloatingText(selfRef.scale.width/2, 80, t('loginDone'), '#ff7675', '18px', true); return; }
+                lastFreeDrawDate = today;
+                let btn = document.getElementById('gacha-btn-free');
+                if (btn) { btn.disabled = true; btn.textContent = `✅ ${t('loginDone')}`; }
+            } else {
+                let cost = count === 10 ? 90 : 10;
+                if (premiumCoin < cost) { showFloatingText(selfRef.scale.width/2, 80, t('gachaNoGems'), '#ff7675', '18px', true); return; }
+                premiumCoin -= cost; updateUI();
+            }
+            // 執行抽卡
+            let results = [];
+            for (let i = 0; i < count; i++) {
+                gachaPity++;
+                let rarity;
+                if (gachaPity >= 10) { rarity = 'SSR'; gachaPity = 0; }
+                else { let roll = Math.random() * 100; rarity = roll < 3 ? 'SSR' : roll < 23 ? 'SR' : 'R'; if (rarity === 'SSR') gachaPity = 0; }
+                let pool = gachaPool[rarity];
+                let yokai = yokaiDatabase.find(y => y.id === pool[Math.floor(Math.random() * pool.length)]);
+                yokai._wasUnlocked = yokai.unlocked;
+                results.push(yokai);
+            }
+            doGachaDraw(results);
+        },
     };
 
     // --- [視窗縮放自動重新定位 UI] ---

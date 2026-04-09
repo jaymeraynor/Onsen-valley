@@ -6,7 +6,7 @@
     <title>Onsen Valley | Cozy Idle Sim</title>
     <meta name="description" content="Welcome to Onsen Valley, a cozy Yokai hot spring idle sim. (療癒系妖怪溫泉放置經營遊戲)">
     
-    <link rel="stylesheet" href="css/style.css?v=1.0.35">
+    <link rel="stylesheet" href="css/style.css?v=1.0.36">
     <script src="https://unpkg.com/phaser@3.60.0/dist/phaser.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -37,6 +37,7 @@
             <button id="hbtn-build"    class="hbtn hbtn-green"  onclick="GameAPI.toggleBuild()">🔨 建造/升級</button>
             <button id="hbtn-settings" class="hbtn hbtn-gray"   onclick="GameAPI.openSettings()">⚙️ Settings</button>
             <button id="hbtn-dex"      class="hbtn hbtn-purple" onclick="GameAPI.openDex()">📖 圖鑑</button>
+            <button id="hbtn-gacha"    class="hbtn hbtn-gold"   onclick="GameAPI.openGacha()">✨ 召喚</button>
         </div>
 
         <!-- 任務 + 遠征：左側導覽按鈕下方 -->
@@ -62,6 +63,33 @@
 
     </div>
 
+    <!-- ── 每日登入獎勵 Modal ── -->
+    <div id="login-modal" class="modal-overlay" style="display:none">
+        <div class="modal-panel">
+            <h2 id="login-modal-title">📅 每日登入獎勵</h2>
+            <div class="login-streak-line">🔥 連續登入 <span id="login-streak-num">1</span> 天</div>
+            <div id="login-day-grid"></div>
+            <div class="login-today-label">今日獎勵：<strong id="login-today-reward">...</strong></div>
+            <button id="login-claim-btn" class="hbtn hbtn-green modal-claim-btn" onclick="GameAPI.claimLogin()">🎁 領取！</button>
+        </div>
+    </div>
+
+    <!-- ── 妖怪召喚 Modal ── -->
+    <div id="gacha-modal" class="modal-overlay" style="display:none">
+        <div class="modal-panel gacha-panel">
+            <h2 id="gacha-modal-title">✨ 妖怪召喚</h2>
+            <div class="gacha-pity-bar"><span id="gacha-pity-label">保底</span>: <span id="gacha-pity-num">0</span>/10</div>
+            <div id="gacha-result-area"></div>
+            <div id="gacha-rates-text" class="gacha-rates">SSR 3% ｜ SR 20% ｜ R 77% ｜ 每10抽必出SSR</div>
+            <div class="gacha-btns">
+                <button id="gacha-btn-free"   class="hbtn hbtn-green"  onclick="GameAPI.gachaDraw(1,true)">🎁 每日免費</button>
+                <button id="gacha-btn-single" class="hbtn hbtn-indigo" onclick="GameAPI.gachaDraw(1)">單抽 (10💎)</button>
+                <button id="gacha-btn-ten"    class="hbtn hbtn-purple" onclick="GameAPI.gachaDraw(10)">十連抽 (90💎)</button>
+            </div>
+            <button id="gacha-btn-close" class="hbtn hbtn-gray modal-close-btn" onclick="GameAPI.closeGacha()">✕ 關閉</button>
+        </div>
+    </div>
+
     <div id="debug-log" style="position:fixed; top:10px; left:10px; color:#ff7675; z-index:9999; font-size:12px; font-weight:bold; pointer-events:none; background:rgba(0,0,0,0.8); padding:5px;"></div>
     <div id="loading-screen">
         <div id="loading-progress">
@@ -80,8 +108,8 @@
         };
     </script>
 
-    <script src="js/data.js?v=1.0.35"></script>
-    <script src="js/weather.js?v=1.0.35"></script>
-    <script src="js/main.js?v=1.0.35"></script>
+    <script src="js/data.js?v=1.0.36"></script>
+    <script src="js/weather.js?v=1.0.36"></script>
+    <script src="js/main.js?v=1.0.36"></script>
 </body>
 </html>
