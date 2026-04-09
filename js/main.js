@@ -955,7 +955,18 @@ function create() {
 
             function updateExpedStats() {
                 let tMult = 1.0, aMult = 1.0, gMult = 1.0;
-                selectedTeam.forEach(y => { if(y.id===0) gMult+=0.15; if(y.id===1) tMult-=0.20; if(y.id===2) aMult+=0.30; if(y.id===3) { aMult+=0.10; tMult-=0.10; } });
+                selectedTeam.forEach(y => {
+                    if(y.id===0) gMult+=0.15;
+                    if(y.id===1) tMult-=0.20;
+                    if(y.id===2) aMult+=0.30;
+                    if(y.id===3) { aMult+=0.10; tMult-=0.10; }
+                    if(y.id===4) { aMult+=0.20; gMult+=0.10; } // 櫻花精
+                    if(y.id===5) { aMult+=0.15; tMult-=0.15; } // 玄武龜
+                    if(y.id===6) { aMult+=0.25; gMult+=0.15; } // 雷獅 SSR
+                    if(y.id===7) gMult+=0.20;                   // 月兔
+                    if(y.id===8) aMult+=0.10;                   // 蘑菇精
+                    if(y.id===9) tMult-=0.15;                   // 海龍童子
+                });
                 let fTime = Math.max(1, Math.floor(baseTime * tMult)); let fAcorn = Math.floor(baseAcorn * aMult); let fGem = Math.floor(baseGem * gMult);
                 statsText.setText(`距離: ${dist} km\n預計時間: ${fTime} 秒\n預計掉落: ${fAcorn}🌰 / ${fGem}💎`);
                 return { fTime, fAcorn, fGem };
@@ -1282,13 +1293,22 @@ function create() {
                             }
                         });
                         
-                        envBonus = Math.min(envBonus, 0.50); 
-                        let baseYield = getYield(targetPool.level); let finalYield = Math.floor(baseYield * (1 + envBonus)); 
-                        
-                        score += finalYield; selfRef.addExp(Math.floor(finalYield * 0.1)); 
-                        
+                        envBonus = Math.min(envBonus, 0.50);
+                        // SSR trait bonus: owned SSR yokai passively boost pool yield
+                        let ssrBonus = 0;
+                        ownedYokais.forEach(y => {
+                            if (y.id===0) ssrBonus += 0.15;  // 九尾狐 gem bonus — translated to acorn here
+                            if (y.id===4) ssrBonus += 0.20;  // 櫻花精
+                            if (y.id===6) ssrBonus += 0.25;  // 雷獅
+                        });
+                        ssrBonus = Math.min(ssrBonus, 0.60);
+                        let totalBonus = Math.min(envBonus + ssrBonus, 0.90);
+                        let baseYield = getYield(targetPool.level); let finalYield = Math.floor(baseYield * (1 + totalBonus));
+
+                        score += finalYield; selfRef.addExp(Math.floor(finalYield * 0.1));
+
                         let popupText = '+' + finalYield; let popupColor = '#ffeaa7'; let popupSize = '18px';
-                        if (envBonus > 0) { popupText += ` (+${Math.floor(envBonus * 100)}%)`; popupColor = '#55efc4'; popupSize = '20px'; }
+                        if (totalBonus > 0) { popupText += ` (+${Math.floor(totalBonus * 100)}%)`; popupColor = ssrBonus > 0 ? '#f1c40f' : '#55efc4'; popupSize = '20px'; }
                         
                         showFloatingText(targetPool.screenX, targetPool.screenY - 40, popupText, popupColor, popupSize);
 
