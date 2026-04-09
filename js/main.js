@@ -16,11 +16,11 @@ let unlockedIslands = [0];
 
 let isGameLoaded = false; 
 
-let gridSize = 250; 
-const centerGrid = Math.floor(gridSize / 2); 
+let gridSize = 400;
+const centerGrid = Math.floor(gridSize / 2);
 const halfWidth = 32, halfHeight = 16, tileThickness = 0;
-const offsetX = gridSize * halfWidth, offsetY = 0; 
-const SAVE_KEY = 'yokai_hotspring_save_v1_5';
+const offsetX = gridSize * halfWidth, offsetY = 0;
+const SAVE_KEY = 'yokai_hotspring_save_v1_6';
 
 // --- [防禦 iOS Safari 隱私權限制導致的白畫面] ---
 let userSettings = { sfx: true, music: true, vfx: true, lang: null };
@@ -234,7 +234,7 @@ function create() {
                         if (rand < 0.04) tileStatus = -2;
                         else if (rand < 0.07) tileStatus = -3;
                     }
-                    let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 3 && Math.abs(ty - icy) <= 3;
+                    let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 5 && Math.abs(ty - icy) <= 5;
                     if (isStartCenter) tileStatus = 0; // keep center clear
                     mapData[ty][tx] = { status: tileStatus, unlocked: isStartCenter, isAdj: false };
                 }
@@ -248,6 +248,29 @@ function create() {
             }
         }
         markOceanBorders();
+
+        // Place expedition village tiles in open ocean at various distances/directions
+        function placeVillage(targetX, targetY) {
+            for (let r = 0; r <= 12; r++) {
+                for (let dy = -r; dy <= r; dy++) {
+                    for (let dx = -r; dx <= r; dx++) {
+                        if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+                        let nx = targetX + dx, ny = targetY + dy;
+                        if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && mapData[ny][nx].status === -7) {
+                            mapData[ny][nx].status = -5;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        // 8 compass directions at ~75 tiles, plus 4 far villages at ~110 tiles
+        [
+            [0, -75], [75, 0], [0, 75], [-75, 0],
+            [55, -55], [55, 55], [-55, 55], [-55, -55],
+            [110, -15], [-100, 20], [15, 110], [-20, -105],
+        ].forEach(([dx, dy]) => placeVillage(centerGrid + dx, centerGrid + dy));
+
         updateAdjacency();
     }
 
@@ -355,8 +378,8 @@ function create() {
         let cx = offsetX + (centerGrid - centerGrid) * halfWidth;
         let cy = offsetY + (centerGrid + centerGrid) * halfHeight;
         selfRef.cameras.main.centerOn(cx, cy);
-        // Restrict scrolling to ±1500px from main island centre (about 2× island radius)
-        selfRef.cameras.main.setBounds(cx - 1500, cy - 900, 3000, 1800);
+        // Bounds large enough to encompass all 5 islands at their new 3× scale
+        selfRef.cameras.main.setBounds(cx - 7000, cy - 5000, 15000, 11000);
     });
 
     // 自動進入：載入完成後自動開始遊戲，不需玩家點擊
@@ -404,8 +427,8 @@ function create() {
     let W0 = this.scale.width, H0 = this.scale.height;
     let oceanBg = this.add.rectangle(W0 / 2, H0 / 2, 8000, 5000, 0x0652dd, 1).setDepth(-10).setScrollFactor(0).setOrigin(0.5, 0.5);
 
-    for(let i=0; i<1500; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
-    for(let i=0; i<1500; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
+    for(let i=0; i<3000; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
+    for(let i=0; i<3000; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
     for(let i=0; i<150; i++) signPool.push(this.add.text(0,0,'💰', {fontSize:'16px'}).setVisible(false).setOrigin(0.5));
     for(let i=0; i<50; i++) villagePool.push(this.add.text(0,0,'🏯', {fontSize:'32px'}).setVisible(false).setOrigin(0.5));
 
@@ -1374,16 +1397,20 @@ function update() {
             // No fog or expand signs on ocean border tiles
             if (tile.status === -8) continue;
 
+            // Village tiles are always visible (no fog) so players can see expedition targets
+            if (tile.status === -5) {
+                if (villagePool.length > 0) {
+                    let v = villagePool.pop(); v.setPosition(sx, sy-20).setDepth(x+y+0.9).setVisible(true); activeVillages.push(v);
+                }
+                continue;
+            }
+
             if (!tile.unlocked && fogPool.length > 0) {
                 let fog = fogPool.pop(); fog.setPosition(sx, sy).setDepth(x+y+0.5).setVisible(true); activeFogs.push(fog);
             }
 
-            if (!tile.unlocked && tile.isAdj && tile.status !== -5 && tile.status !== -6 && signPool.length > 0) {
+            if (!tile.unlocked && tile.isAdj && tile.status !== -6 && signPool.length > 0) {
                 let sign = signPool.pop(); sign.setPosition(sx, sy-10).setDepth(x+y+0.6).setVisible(true); activeSigns.push(sign);
-            }
-
-            if (tile.status === -5 && villagePool.length > 0) {
-                let v = villagePool.pop(); v.setPosition(sx, sy-20).setDepth(x+y+0.2).setVisible(true); activeVillages.push(v);
             }
         }
     }

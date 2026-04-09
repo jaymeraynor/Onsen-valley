@@ -54,15 +54,15 @@ const poolColors = [ null, { w: 0x74b9ff, l: 0x0984e3, r: 0x0652dd }, { w: 0xfd7
 const unlockLevels = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55];
 
 const islandDatabase = [
-    { id: 0, cx: 0, cy: 0, radius: 13, requiredLevel: 0,
+    { id: 0, cx: 0, cy: 0, radius: 39, requiredLevel: 0,
       name: { zh: '湯之谷', 'zh-CN': '汤之谷', ja: '湯の谷', ko: '온천 계곡', en: 'Onsen Valley', es: 'Valle Onsen' } },
-    { id: 1, cx: 38, cy: -18, radius: 9, requiredLevel: 5,
+    { id: 1, cx: 76, cy: -36, radius: 27, requiredLevel: 5,
       name: { zh: '霧島', 'zh-CN': '雾岛', ja: '霧島', ko: '안개 섬', en: 'Mist Isle', es: 'Isla Niebla' } },
-    { id: 2, cx: -32, cy: 25, radius: 8, requiredLevel: 12,
+    { id: 2, cx: -64, cy: 50, radius: 24, requiredLevel: 12,
       name: { zh: '竹林島', 'zh-CN': '竹林岛', ja: '竹林島', ko: '대나무 섬', en: 'Bamboo Isle', es: 'Isla Bambú' } },
-    { id: 3, cx: 42, cy: 38, radius: 10, requiredLevel: 25,
+    { id: 3, cx: 84, cy: 76, radius: 30, requiredLevel: 25,
       name: { zh: '火山島', 'zh-CN': '火山岛', ja: '火山島', ko: '화산 섬', en: 'Volcano Isle', es: 'Isla Volcán' } },
-    { id: 4, cx: -40, cy: -35, radius: 7, requiredLevel: 40,
+    { id: 4, cx: -80, cy: -70, radius: 21, requiredLevel: 40,
       name: { zh: '極光島', 'zh-CN': '极光岛', ja: 'オーロラ島', ko: '오로라 섬', en: 'Aurora Isle', es: 'Isla Aurora' } }
 ];
 
