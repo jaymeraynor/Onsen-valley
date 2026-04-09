@@ -1378,8 +1378,7 @@ function create() {
 
     // ── 召喚(抽卡)系統 ─────────────────────────────────────────────
     function doGachaDraw(results) {
-        // 應用抽到的妖怪
-        results.forEach(yokai => { if (!yokai.unlocked) yokai.unlocked = true; });
+        // unlocked already set on DB objects during draw loop; sync dex display
         updateUI();
         // 顯示結果卡片
         let area = document.getElementById('gacha-result-area');
@@ -1466,10 +1465,13 @@ function create() {
                 let rarity;
                 if (gachaPity >= 10) { rarity = 'SSR'; gachaPity = 0; }
                 else { let roll = Math.random() * 100; rarity = roll < 3 ? 'SSR' : roll < 23 ? 'SR' : 'R'; if (rarity === 'SSR') gachaPity = 0; }
-                let pool = gachaPool[rarity];
-                let yokai = yokaiDatabase.find(y => y.id === pool[Math.floor(Math.random() * pool.length)]);
-                yokai._wasUnlocked = yokai.unlocked;
-                results.push(yokai);
+                let pool = (typeof gachaPool !== 'undefined' && gachaPool[rarity]) ? gachaPool[rarity] : [0];
+                let targetId = pool[Math.floor(Math.random() * pool.length)];
+                let yokai = yokaiDatabase.find(y => y.id === targetId);
+                if (!yokai) yokai = yokaiDatabase[Math.floor(Math.random() * yokaiDatabase.length)]; // fallback
+                let wasUnlocked = yokai.unlocked;
+                yokai.unlocked = true;
+                results.push({ ...yokai, _wasUnlocked: wasUnlocked }); // shallow copy avoids mutating DB ref
             }
             doGachaDraw(results);
         },
