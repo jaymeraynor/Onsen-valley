@@ -822,6 +822,7 @@ function create() {
     cursor.beginPath(); cursor.moveTo(0, 0); cursor.lineTo(halfWidth, 16); cursor.lineTo(0, 32); cursor.lineTo(-halfWidth, 16); cursor.closePath(); cursor.strokePath();
 
     let pinchStartDist = -1; let initialZoom = 1; let pointerDownPos = { x: 0, y: 0 }; let lastDragGrid = { x: -1, y: -1 };
+    let lastPanX = -1, lastPanY = -1; // manual prev-position tracking (p.prevPosition unreliable on mobile)
 
     function attemptPlaceItem(p) {
         // No pixel-space guards needed — UI is now in the HTML overlay which intercepts its own clicks
@@ -865,7 +866,8 @@ function create() {
 
     this.input.on('pointerdown', (p) => {
         if(!isGameLoaded) return;
-        pointerDownPos.x = p.x; pointerDownPos.y = p.y; lastDragGrid = { x: -1, y: -1 }; 
+        pointerDownPos.x = p.x; pointerDownPos.y = p.y; lastDragGrid = { x: -1, y: -1 };
+        lastPanX = p.x; lastPanY = p.y; // seed pan tracker
         if (activeShopItem && (!dexPanel && !settingsPanel && (!shopPanel || !shopPanel.visible) && !rosterPanel && !expedPanel)) attemptPlaceItem(p);
     });
 
@@ -880,9 +882,17 @@ function create() {
             if (pinchStartDist === -1) { pinchStartDist = dist; initialZoom = selfRef.cameras.main.zoom; } 
             else { let scale = dist / pinchStartDist; selfRef.cameras.main.setZoom(Phaser.Math.Clamp(initialZoom * scale, 0.5, 3.0)); }
         } else if (p.isDown) {
-            if (activeShopItem) { attemptPlaceItem(p); } 
-            else { pinchStartDist = -1; let dx = p.x - p.prevPosition.x; let dy = p.y - p.prevPosition.y; selfRef.cameras.main.scrollX -= dx / selfRef.cameras.main.zoom; selfRef.cameras.main.scrollY -= dy / selfRef.cameras.main.zoom; }
-        } else { pinchStartDist = -1; }
+            if (activeShopItem) { attemptPlaceItem(p); }
+            else {
+                pinchStartDist = -1;
+                if (lastPanX !== -1) {
+                    let dx = p.x - lastPanX, dy = p.y - lastPanY;
+                    selfRef.cameras.main.scrollX -= dx / selfRef.cameras.main.zoom;
+                    selfRef.cameras.main.scrollY -= dy / selfRef.cameras.main.zoom;
+                }
+                lastPanX = p.x; lastPanY = p.y;
+            }
+        } else { pinchStartDist = -1; lastPanX = -1; lastPanY = -1; }
     });
 
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
@@ -892,7 +902,7 @@ function create() {
 
     this.input.on('pointerup', function (p) {
         if(!isGameLoaded) return;
-        pinchStartDist = -1; lastDragGrid = { x: -1, y: -1 };
+        pinchStartDist = -1; lastDragGrid = { x: -1, y: -1 }; lastPanX = -1; lastPanY = -1;
         // Scale drag-rejection threshold with zoom: at zoom=3 a 5-world-pixel tremor = 15 screen px → wrongly rejected.
         // Use world-space distance so tolerance stays ~12 world pixels regardless of zoom level.
         let zoom = selfRef.cameras.main.zoom;
