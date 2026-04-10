@@ -26,7 +26,7 @@ let gridSize = 800;
 const centerGrid = Math.floor(gridSize / 2);
 const halfWidth = 32, halfHeight = 16, tileThickness = 0;
 const offsetX = gridSize * halfWidth, offsetY = 0;
-const SAVE_KEY = 'yokai_hotspring_save_v1_7';
+const SAVE_KEY = 'yokai_hotspring_save_v1_8';
 
 // --- [防禦 iOS Safari 隱私權限制導致的白畫面] ---
 let userSettings = { sfx: true, music: true, vfx: true, lang: null };
@@ -225,29 +225,23 @@ function create() {
             mapData.push(row);
         }
 
-        // Carve out each island using screen-space (isometric) distance
-        // so the island appears as an oval on screen instead of a diamond
-        const isoScale = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight); // ≈35.78
+        // Carve out each island (grid-space circle — reliable, large)
         islandDatabase.forEach(island => {
             let icx = centerGrid + island.cx;
             let icy = centerGrid + island.cy;
             let r = island.radius;
-            let isoR = r * isoScale; // screen-space radius in pixels
-            let scan = Math.ceil(r * 1.2); // safe scan margin
-            for (let ty = Math.max(0, icy - scan); ty <= Math.min(gridSize-1, icy + scan); ty++) {
-                for (let tx = Math.max(0, icx - scan); tx <= Math.min(gridSize-1, icx + scan); tx++) {
-                    let dx = tx - icx, dy = ty - icy;
-                    let isoX = (dx - dy) * halfWidth, isoY = (dx + dy) * halfHeight;
-                    let dist = Math.sqrt(isoX * isoX + isoY * isoY);
-                    if (dist > isoR) continue;
+            for (let ty = Math.max(0, Math.floor(icy - r - 2)); ty <= Math.min(gridSize-1, Math.ceil(icy + r + 2)); ty++) {
+                for (let tx = Math.max(0, Math.floor(icx - r - 2)); tx <= Math.min(gridSize-1, Math.ceil(icx + r + 2)); tx++) {
+                    let dist = Math.sqrt(Math.pow(tx - icx, 2) + Math.pow(ty - icy, 2));
+                    if (dist > r) continue;
                     let rand = Math.random();
                     let tileStatus = 0;
-                    let isEdge = dist > isoR - isoScale * 1.5;
+                    let isEdge = dist > r - 1.5;
                     if (!isEdge) {
                         if (rand < 0.04) tileStatus = -2;
                         else if (rand < 0.07) tileStatus = -3;
                     }
-                    let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 10 && Math.abs(ty - icy) <= 10;
+                    let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 20 && Math.abs(ty - icy) <= 20;
                     if (isStartCenter) tileStatus = 0;
                     mapData[ty][tx] = { status: tileStatus, unlocked: isStartCenter, isAdj: false };
                 }
@@ -277,11 +271,11 @@ function create() {
                 }
             }
         }
-        // 8 compass directions at ~200 tiles, plus 4 far villages at ~270 tiles (clear of all islands)
+        // 8 compass directions at ~310 tiles, plus 4 far villages at ~370 tiles (clear of all islands r=200)
         [
-            [0, -200], [200, 0], [0, 200], [-200, 0],
-            [145, -145], [145, 145], [-145, 145], [-145, -145],
-            [270, -40], [-260, 50], [40, 270], [-50, -260],
+            [0, -310], [310, 0], [0, 310], [-310, 0],
+            [220, -220], [220, 220], [-220, 220], [-220, -220],
+            [370, -50], [-360, 60], [50, 370], [-60, -360],
         ].forEach(([dx, dy]) => placeVillage(centerGrid + dx, centerGrid + dy));
 
         updateAdjacency();
@@ -290,21 +284,16 @@ function create() {
     // Mark ocean tiles within 2 tiles of any island edge as -8 (rendered ocean border)
     // These cover the isometric staircase effect at island edges
     function markOceanBorders() {
-        const isoScale = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
         islandDatabase.forEach(island => {
             let icx = centerGrid + island.cx;
             let icy = centerGrid + island.cy;
             let r = island.radius;
             let outerR = r + 2;
-            let isoOuterR = outerR * isoScale;
-            let scan = Math.ceil(outerR * 1.2);
-            for (let ty = Math.max(0, icy - scan); ty <= Math.min(gridSize-1, icy + scan); ty++) {
-                for (let tx = Math.max(0, icx - scan); tx <= Math.min(gridSize-1, icx + scan); tx++) {
+            for (let ty = Math.max(0, Math.floor(icy - outerR - 1)); ty <= Math.min(gridSize-1, Math.ceil(icy + outerR + 1)); ty++) {
+                for (let tx = Math.max(0, Math.floor(icx - outerR - 1)); tx <= Math.min(gridSize-1, Math.ceil(icx + outerR + 1)); tx++) {
                     if (mapData[ty][tx].status !== -7) continue;
-                    let dx = tx - icx, dy = ty - icy;
-                    let isoX = (dx - dy) * halfWidth, isoY = (dx + dy) * halfHeight;
-                    let dist = Math.sqrt(isoX * isoX + isoY * isoY);
-                    if (dist <= isoOuterR) mapData[ty][tx].status = -8;
+                    let dist = Math.sqrt(Math.pow(tx - icx, 2) + Math.pow(ty - icy, 2));
+                    if (dist <= outerR) mapData[ty][tx].status = -8;
                 }
             }
         });
@@ -906,7 +895,7 @@ function create() {
         if (selfRef.input.pointer1.isDown && selfRef.input.pointer2.isDown) {
             let dist = Phaser.Math.Distance.Between(selfRef.input.pointer1.x, selfRef.input.pointer1.y, selfRef.input.pointer2.x, selfRef.input.pointer2.y);
             if (pinchStartDist === -1) { pinchStartDist = dist; initialZoom = selfRef.cameras.main.zoom; } 
-            else { let scale = dist / pinchStartDist; selfRef.cameras.main.setZoom(Phaser.Math.Clamp(initialZoom * scale, 0.5, 3.0)); }
+            else { let scale = dist / pinchStartDist; selfRef.cameras.main.setZoom(Phaser.Math.Clamp(initialZoom * scale, 0.7, 3.0)); }
         } else if (p.isDown) {
             if (activeShopItem) { attemptPlaceItem(p); }
             else {
@@ -923,7 +912,16 @@ function create() {
 
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
         if(!isGameLoaded) return;
-        let newZoom = selfRef.cameras.main.zoom - (deltaY * 0.001); selfRef.cameras.main.setZoom(Phaser.Math.Clamp(newZoom, 0.5, 3.0));
+        let cam = selfRef.cameras.main;
+        let oldZoom = cam.zoom;
+        let newZoom = Phaser.Math.Clamp(oldZoom - (deltaY * 0.001), 0.7, 3.0);
+        if (newZoom === oldZoom) return;
+        // Anchor zoom to pointer world position so map doesn't drift right
+        let wx = cam.scrollX + pointer.x / oldZoom;
+        let wy = cam.scrollY + pointer.y / oldZoom;
+        cam.setZoom(newZoom);
+        cam.scrollX = wx - pointer.x / newZoom;
+        cam.scrollY = wy - pointer.y / newZoom;
     });
 
     this.input.on('pointerup', function (p) {
