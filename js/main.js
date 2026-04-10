@@ -225,24 +225,30 @@ function create() {
             mapData.push(row);
         }
 
-        // Carve out each island
+        // Carve out each island using screen-space (isometric) distance
+        // so the island appears as an oval on screen instead of a diamond
+        const isoScale = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight); // ≈35.78
         islandDatabase.forEach(island => {
             let icx = centerGrid + island.cx;
             let icy = centerGrid + island.cy;
             let r = island.radius;
-            for (let ty = Math.max(0, Math.floor(icy - r - 2)); ty <= Math.min(gridSize-1, Math.ceil(icy + r + 2)); ty++) {
-                for (let tx = Math.max(0, Math.floor(icx - r - 2)); tx <= Math.min(gridSize-1, Math.ceil(icx + r + 2)); tx++) {
-                    let dist = Math.sqrt(Math.pow(tx - icx, 2) + Math.pow(ty - icy, 2));
-                    if (dist > r) continue;
+            let isoR = r * isoScale; // screen-space radius in pixels
+            let scan = Math.ceil(r * 1.2); // safe scan margin
+            for (let ty = Math.max(0, icy - scan); ty <= Math.min(gridSize-1, icy + scan); ty++) {
+                for (let tx = Math.max(0, icx - scan); tx <= Math.min(gridSize-1, icx + scan); tx++) {
+                    let dx = tx - icx, dy = ty - icy;
+                    let isoX = (dx - dy) * halfWidth, isoY = (dx + dy) * halfHeight;
+                    let dist = Math.sqrt(isoX * isoX + isoY * isoY);
+                    if (dist > isoR) continue;
                     let rand = Math.random();
                     let tileStatus = 0;
-                    let isEdge = dist > r - 1.5;
+                    let isEdge = dist > isoR - isoScale * 1.5;
                     if (!isEdge) {
                         if (rand < 0.04) tileStatus = -2;
                         else if (rand < 0.07) tileStatus = -3;
                     }
                     let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 10 && Math.abs(ty - icy) <= 10;
-                    if (isStartCenter) tileStatus = 0; // keep center clear
+                    if (isStartCenter) tileStatus = 0;
                     mapData[ty][tx] = { status: tileStatus, unlocked: isStartCenter, isAdj: false };
                 }
             }
@@ -284,16 +290,21 @@ function create() {
     // Mark ocean tiles within 2 tiles of any island edge as -8 (rendered ocean border)
     // These cover the isometric staircase effect at island edges
     function markOceanBorders() {
+        const isoScale = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
         islandDatabase.forEach(island => {
             let icx = centerGrid + island.cx;
             let icy = centerGrid + island.cy;
             let r = island.radius;
             let outerR = r + 2;
-            for (let ty = Math.max(0, Math.floor(icy - outerR - 1)); ty <= Math.min(gridSize-1, Math.ceil(icy + outerR + 1)); ty++) {
-                for (let tx = Math.max(0, Math.floor(icx - outerR - 1)); tx <= Math.min(gridSize-1, Math.ceil(icx + outerR + 1)); tx++) {
+            let isoOuterR = outerR * isoScale;
+            let scan = Math.ceil(outerR * 1.2);
+            for (let ty = Math.max(0, icy - scan); ty <= Math.min(gridSize-1, icy + scan); ty++) {
+                for (let tx = Math.max(0, icx - scan); tx <= Math.min(gridSize-1, icx + scan); tx++) {
                     if (mapData[ty][tx].status !== -7) continue;
-                    let dist = Math.sqrt(Math.pow(tx - icx, 2) + Math.pow(ty - icy, 2));
-                    if (dist <= outerR) mapData[ty][tx].status = -8;
+                    let dx = tx - icx, dy = ty - icy;
+                    let isoX = (dx - dy) * halfWidth, isoY = (dx + dy) * halfHeight;
+                    let dist = Math.sqrt(isoX * isoX + isoY * isoY);
+                    if (dist <= isoOuterR) mapData[ty][tx].status = -8;
                 }
             }
         });
@@ -441,8 +452,8 @@ function create() {
     let W0 = this.scale.width, H0 = this.scale.height;
     let oceanBg = this.add.rectangle(W0 / 2, H0 / 2, 8000, 5000, 0x0652dd, 1).setDepth(-10).setScrollFactor(0).setOrigin(0.5, 0.5);
 
-    for(let i=0; i<5000; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
-    for(let i=0; i<5000; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
+    for(let i=0; i<3000; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
+    for(let i=0; i<3000; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
     for(let i=0; i<150; i++) signPool.push(this.add.text(0,0,'💰', {fontSize:'16px'}).setVisible(false).setOrigin(0.5));
     for(let i=0; i<50; i++) villagePool.push(this.add.text(0,0,'🏯', {fontSize:'32px'}).setVisible(false).setOrigin(0.5));
 
