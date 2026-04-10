@@ -26,7 +26,7 @@ let gridSize = 800;
 const centerGrid = Math.floor(gridSize / 2);
 const halfWidth = 32, halfHeight = 16, tileThickness = 0;
 const offsetX = gridSize * halfWidth, offsetY = 0;
-const SAVE_KEY = 'yokai_hotspring_save_v1_8';
+const SAVE_KEY = 'yokai_hotspring_save_v1_9';
 
 // --- [防禦 iOS Safari 隱私權限制導致的白畫面] ---
 let userSettings = { sfx: true, music: true, vfx: true, lang: null };
@@ -125,6 +125,8 @@ function preload() {
     draw3DTile('grass1', 0x7bed9f, 0x8b5a2b, 0x654321); draw3DTile('grass2', 0x2ed573, 0x8b5a2b, 0x654321);
     draw3DTile('river', 0x3498db, 0x2980b9, 0x1f3a93, true); draw3DTile('waterfall', 0x74b9ff, 0x0984e3, 0x0652dd, true);
     draw3DTile('ocean', 0x0984e3, 0x0652dd, 0x023e8a, true);
+    draw3DTile('shallow', 0x48c8f8, 0x1898d8, 0x0068b8, true); // 淺海 (比ocean淺一圈)
+    draw3DTile('sand', 0xf4d080, 0xc8a040, 0xa07830);          // 沙灘
     draw3DTile('cliff', 0x2d3436, 0x1e272e, 0x000000);
     g.fillStyle(0x000000, 0.45); g.beginPath(); g.moveTo(32, 0); g.lineTo(64, 16); g.lineTo(32, 32); g.lineTo(0, 16); g.closePath(); g.fillPath(); g.generateTexture('fog', 64, 32); g.clear();
 
@@ -236,13 +238,16 @@ function create() {
                     if (dist > r) continue;
                     let rand = Math.random();
                     let tileStatus = 0;
-                    let isEdge = dist > r - 1.5;
-                    if (!isEdge) {
+                    let isBeach = dist > r - 4;      // 外圍 4 格為沙灘
+                    let isEdge  = dist > r - 1.5;    // 最外 1.5 格不長山/河
+                    if (isBeach) {
+                        tileStatus = -6; // 沙灘格
+                    } else if (!isEdge) {
                         if (rand < 0.04) tileStatus = -2;
                         else if (rand < 0.07) tileStatus = -3;
                     }
                     let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 20 && Math.abs(ty - icy) <= 20;
-                    if (isStartCenter) tileStatus = 0;
+                    if (isStartCenter) tileStatus = 0; // 起始中心區保留草地
                     mapData[ty][tx] = { status: tileStatus, unlocked: isStartCenter, isAdj: false };
                 }
             }
@@ -913,15 +918,8 @@ function create() {
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
         if(!isGameLoaded) return;
         let cam = selfRef.cameras.main;
-        let oldZoom = cam.zoom;
-        let newZoom = Phaser.Math.Clamp(oldZoom - (deltaY * 0.001), 0.7, 3.0);
-        if (newZoom === oldZoom) return;
-        // Anchor zoom to pointer world position so map doesn't drift right
-        let wx = cam.scrollX + pointer.x / oldZoom;
-        let wy = cam.scrollY + pointer.y / oldZoom;
+        let newZoom = Phaser.Math.Clamp(cam.zoom - (deltaY * 0.001), 0.7, 3.0);
         cam.setZoom(newZoom);
-        cam.scrollX = wx - pointer.x / newZoom;
-        cam.scrollY = wy - pointer.y / newZoom;
     });
 
     this.input.on('pointerup', function (p) {
@@ -1561,8 +1559,8 @@ function update() {
                 spr.setPosition(sx, sy).setDepth(x+y).setVisible(true);
                 activeTiles.push(spr);
 
-                if (tile.status === -8) { spr.setTexture('ocean').setOrigin(0.5, 0); }
-                else if (tile.status === -6) spr.setTexture('cliff').setOrigin(0.5, 0);
+                if (tile.status === -8) { spr.setTexture('shallow').setOrigin(0.5, 0); } // 淺海
+                else if (tile.status === -6) spr.setTexture('sand').setOrigin(0.5, 0);   // 沙灘
                 else if (tile.status === -2) spr.setTexture('mountain').setOrigin(0.5, 0.9);
                 else if (tile.status === -3) spr.setTexture('river').setOrigin(0.5, 0);
                 else if (tile.status === -4) spr.setTexture('waterfall').setOrigin(0.5, 0);
@@ -1584,7 +1582,7 @@ function update() {
                 let fog = fogPool.pop(); fog.setPosition(sx, sy).setDepth(x+y+0.5).setVisible(true); activeFogs.push(fog);
             }
 
-            if (!tile.unlocked && tile.isAdj && tile.status !== -6 && signPool.length > 0) {
+            if (!tile.unlocked && tile.isAdj && signPool.length > 0) {
                 let sign = signPool.pop(); sign.setPosition(sx, sy-10).setDepth(x+y+0.6).setVisible(true); activeSigns.push(sign);
             }
         }
