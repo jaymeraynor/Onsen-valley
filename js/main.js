@@ -441,17 +441,18 @@ function create() {
         }
     }
 
-    // Ocean background and night overlay — oversized (8000×5000) rects centred on screen
-    // so they always cover the full canvas regardless of resize timing
+    // Ocean background — world-space (scrollFactor=1) so it moves with the camera.
+    // 80000×60000 covers the entire map bounds regardless of pan/zoom.
     let W0 = this.scale.width, H0 = this.scale.height;
-    let oceanBg = this.add.rectangle(W0 / 2, H0 / 2, 8000, 5000, 0x0652dd, 1).setDepth(-10).setScrollFactor(0).setOrigin(0.5, 0.5);
+    let worldCx = offsetX, worldCy = offsetY + centerGrid * 2 * halfHeight;
+    let oceanBg = this.add.rectangle(worldCx, worldCy, 80000, 60000, 0x0652dd, 1).setDepth(-10).setOrigin(0.5, 0.5);
 
     for(let i=0; i<3000; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
     for(let i=0; i<3000; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
     for(let i=0; i<150; i++) signPool.push(this.add.text(0,0,'💰', {fontSize:'16px'}).setVisible(false).setOrigin(0.5));
     for(let i=0; i<50; i++) villagePool.push(this.add.text(0,0,'🏯', {fontSize:'32px'}).setVisible(false).setOrigin(0.5));
 
-    nightOverlay = this.add.rectangle(W0 / 2, H0 / 2, 8000, 5000, 0x0a3d62, 0).setDepth(1800).setScrollFactor(0).setOrigin(0.5, 0.5);
+    nightOverlay = this.add.rectangle(worldCx, worldCy, 80000, 60000, 0x0a3d62, 0).setDepth(1800).setOrigin(0.5, 0.5);
 
     // [模組化] 初始化天氣系統
     if (typeof WeatherSystem !== 'undefined') {
@@ -900,7 +901,7 @@ function create() {
         if (selfRef.input.pointer1.isDown && selfRef.input.pointer2.isDown) {
             let dist = Phaser.Math.Distance.Between(selfRef.input.pointer1.x, selfRef.input.pointer1.y, selfRef.input.pointer2.x, selfRef.input.pointer2.y);
             if (pinchStartDist === -1) { pinchStartDist = dist; initialZoom = selfRef.cameras.main.zoom; } 
-            else { let scale = dist / pinchStartDist; selfRef.cameras.main.setZoom(Phaser.Math.Clamp(initialZoom * scale, 0.7, 3.0)); }
+            else { let scale = dist / pinchStartDist; selfRef.cameras.main.setZoom(Phaser.Math.Clamp(initialZoom * scale, 0.5, 3.0)); }
         } else if (p.isDown) {
             if (activeShopItem) { attemptPlaceItem(p); }
             else {
@@ -918,7 +919,7 @@ function create() {
     this.input.on('wheel', (pointer, gameObjects, deltaX, deltaY, deltaZ) => {
         if(!isGameLoaded) return;
         let cam = selfRef.cameras.main;
-        let newZoom = Phaser.Math.Clamp(cam.zoom - (deltaY * 0.001), 0.7, 3.0);
+        let newZoom = Phaser.Math.Clamp(cam.zoom - (deltaY * 0.001), 0.5, 3.0);
         cam.setZoom(newZoom);
     });
 
