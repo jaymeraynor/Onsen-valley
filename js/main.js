@@ -22,11 +22,11 @@ let gachaPity       = 0;      // 累計抽次(未出SSR)，10次保底
 
 let isGameLoaded = false; 
 
-let gridSize = 400;
+let gridSize = 800;
 const centerGrid = Math.floor(gridSize / 2);
 const halfWidth = 32, halfHeight = 16, tileThickness = 0;
 const offsetX = gridSize * halfWidth, offsetY = 0;
-const SAVE_KEY = 'yokai_hotspring_save_v1_6';
+const SAVE_KEY = 'yokai_hotspring_save_v1_7';
 
 // --- [防禦 iOS Safari 隱私權限制導致的白畫面] ---
 let userSettings = { sfx: true, music: true, vfx: true, lang: null };
@@ -241,7 +241,7 @@ function create() {
                         if (rand < 0.04) tileStatus = -2;
                         else if (rand < 0.07) tileStatus = -3;
                     }
-                    let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 5 && Math.abs(ty - icy) <= 5;
+                    let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 10 && Math.abs(ty - icy) <= 10;
                     if (isStartCenter) tileStatus = 0; // keep center clear
                     mapData[ty][tx] = { status: tileStatus, unlocked: isStartCenter, isAdj: false };
                 }
@@ -271,11 +271,11 @@ function create() {
                 }
             }
         }
-        // 8 compass directions at ~75 tiles, plus 4 far villages at ~110 tiles
+        // 8 compass directions at ~200 tiles, plus 4 far villages at ~270 tiles (clear of all islands)
         [
-            [0, -75], [75, 0], [0, 75], [-75, 0],
-            [55, -55], [55, 55], [-55, 55], [-55, -55],
-            [110, -15], [-100, 20], [15, 110], [-20, -105],
+            [0, -200], [200, 0], [0, 200], [-200, 0],
+            [145, -145], [145, 145], [-145, 145], [-145, -145],
+            [270, -40], [-260, 50], [40, 270], [-50, -260],
         ].forEach(([dx, dy]) => placeVillage(centerGrid + dx, centerGrid + dy));
 
         updateAdjacency();
@@ -315,7 +315,9 @@ function create() {
                 lastFreeDrawDate = data.lastFreeDrawDate || null;
                 gachaPity      = data.gachaPity      || 0;
                 yokaiDatabase.forEach((y, i) => { if (data.dex[i]) { y.unlocked = data.dex[i].unlocked; y.affection = data.dex[i].affection; } });
-                mapData = data.mapData.map(row => row.map(t => ({ status: t[0], unlocked: t[1] === 1, isAdj: t[2] === 1 })));
+                generateNewMap();
+                (data.unlockedTiles || []).forEach(([x, y]) => { if (y >= 0 && y < gridSize && x >= 0 && x < gridSize) mapData[y][x].unlocked = true; });
+                updateAdjacency();
 
                 if (data.activeExpedition) {
                     let e = data.activeExpedition;
@@ -389,8 +391,8 @@ function create() {
         let cx = offsetX + (centerGrid - centerGrid) * halfWidth;
         let cy = offsetY + (centerGrid + centerGrid) * halfHeight;
         selfRef.cameras.main.centerOn(cx, cy);
-        // Bounds large enough to encompass all 5 islands at their new 3× scale
-        selfRef.cameras.main.setBounds(cx - 7000, cy - 5000, 15000, 11000);
+        // Bounds large enough to encompass all 5 islands and village tiles
+        selfRef.cameras.main.setBounds(cx - 18000, cy - 14000, 38000, 30000);
     });
 
     // 自動進入：載入完成後自動開始遊戲，不需玩家點擊
@@ -439,8 +441,8 @@ function create() {
     let W0 = this.scale.width, H0 = this.scale.height;
     let oceanBg = this.add.rectangle(W0 / 2, H0 / 2, 8000, 5000, 0x0652dd, 1).setDepth(-10).setScrollFactor(0).setOrigin(0.5, 0.5);
 
-    for(let i=0; i<3000; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
-    for(let i=0; i<3000; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
+    for(let i=0; i<5000; i++) tilePool.push(this.add.sprite(0,0,'grass1').setVisible(false).setOrigin(0.5, 0));
+    for(let i=0; i<5000; i++) fogPool.push(this.add.sprite(0,0,'fog').setVisible(false).setOrigin(0.5, 0.5));
     for(let i=0; i<150; i++) signPool.push(this.add.text(0,0,'💰', {fontSize:'16px'}).setVisible(false).setOrigin(0.5));
     for(let i=0; i<50; i++) villagePool.push(this.add.text(0,0,'🏯', {fontSize:'32px'}).setVisible(false).setOrigin(0.5));
 
@@ -714,7 +716,7 @@ function create() {
             score: score, premiumCoin: premiumCoin, playerLevel: playerLevel, playerExp: playerExp, questStats: questStats, currentQuest: currentQuest, ownedYokais: ownedYokais, unlockedIslands: unlockedIslands,
             lastLoginDate, loginStreak, lastFreeDrawDate, gachaPity,
             dex: yokaiDatabase.map(y => ({ unlocked: y.unlocked, affection: y.affection })),
-            mapData: mapData.map(row => row.map(t => [t.status, t.unlocked ? 1 : 0, t.isAdj ? 1 : 0])),
+            unlockedTiles: (() => { let coords = []; for (let y = 0; y < gridSize; y++) for (let x = 0; x < gridSize; x++) if (mapData[y][x].unlocked) coords.push([x, y]); return coords; })(),
             pools: pools.map(p => ({ x: p.gridX, y: p.gridY, lvl: p.level, state: p.state, timeLeft: p.timeLeft, total: p.totalBuildTime, occ: p.occupants, res: p.reserved, max: p.maxOccupants })),
             decors: decors.map(d => ({ id: d.itemId, x: d.gx, y: d.gy, lvl: d.level, isWall: d.isWall })),
             activeExpedition: activeExpedition ? { gx: activeExpedition.gx, gy: activeExpedition.gy, sx: activeExpedition.sx, sy: activeExpedition.sy, dist: activeExpedition.dist, timeTotal: activeExpedition.timeTotal, timeLeft: activeExpedition.timeLeft, rewardAcorn: activeExpedition.rewardAcorn, rewardGem: activeExpedition.rewardGem, state: activeExpedition.state, team: activeExpedition.team } : null
