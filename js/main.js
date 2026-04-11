@@ -26,7 +26,7 @@ let gridSize = 800;
 const centerGrid = Math.floor(gridSize / 2);
 const halfWidth = 32, halfHeight = 16, tileThickness = 0;
 const offsetX = gridSize * halfWidth, offsetY = 0;
-const SAVE_KEY = 'yokai_hotspring_save_v1_9';
+const SAVE_KEY = 'yokai_hotspring_save_v1_10';
 
 // --- [防禦 iOS Safari 隱私權限制導致的白畫面] ---
 let userSettings = { sfx: true, music: true, vfx: true, lang: null };
@@ -227,27 +227,32 @@ function create() {
             mapData.push(row);
         }
 
-        // Carve out each island (grid-space circle — reliable, large)
+        // Carve out each island with organic coastline noise
+        // deterministic sin/cos noise breaks up the diagonal straight edge
         islandDatabase.forEach(island => {
             let icx = centerGrid + island.cx;
             let icy = centerGrid + island.cy;
             let r = island.radius;
-            for (let ty = Math.max(0, Math.floor(icy - r - 2)); ty <= Math.min(gridSize-1, Math.ceil(icy + r + 2)); ty++) {
-                for (let tx = Math.max(0, Math.floor(icx - r - 2)); tx <= Math.min(gridSize-1, Math.ceil(icx + r + 2)); tx++) {
+            let scanR = r + 10; // extra margin for noise overflow
+            for (let ty = Math.max(0, Math.floor(icy - scanR)); ty <= Math.min(gridSize-1, Math.ceil(icy + scanR)); ty++) {
+                for (let tx = Math.max(0, Math.floor(icx - scanR)); tx <= Math.min(gridSize-1, Math.ceil(icx + scanR)); tx++) {
                     let dist = Math.sqrt(Math.pow(tx - icx, 2) + Math.pow(ty - icy, 2));
-                    if (dist > r) continue;
+                    // Organic edge: deterministic noise ±7 tiles using two-frequency sin/cos
+                    let noise = Math.sin(tx * 0.35 + ty * 0.15) * 4 + Math.sin(tx * 0.85 - ty * 0.6) * 3;
+                    let effectiveR = r + noise;
+                    if (dist > effectiveR) continue;
                     let rand = Math.random();
                     let tileStatus = 0;
-                    let isBeach = dist > r - 4;      // 外圍 4 格為沙灘
-                    let isEdge  = dist > r - 1.5;    // 最外 1.5 格不長山/河
+                    let isBeach = dist > effectiveR - 8;  // 外圍 8 格沙灘
+                    let isEdge  = dist > effectiveR - 2;  // 最外 2 格不長山/河
                     if (isBeach) {
-                        tileStatus = -6; // 沙灘格
+                        tileStatus = -6;
                     } else if (!isEdge) {
-                        if (rand < 0.04) tileStatus = -2;
-                        else if (rand < 0.07) tileStatus = -3;
+                        if (rand < 0.025) tileStatus = -2; // 山
+                        else if (rand < 0.05) tileStatus = -3; // 河
                     }
-                    let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 20 && Math.abs(ty - icy) <= 20;
-                    if (isStartCenter) tileStatus = 0; // 起始中心區保留草地
+                    let isStartCenter = island.id === 0 && Math.abs(tx - icx) <= 30 && Math.abs(ty - icy) <= 30;
+                    if (isStartCenter) tileStatus = 0;
                     mapData[ty][tx] = { status: tileStatus, unlocked: isStartCenter, isAdj: false };
                 }
             }
@@ -293,7 +298,7 @@ function create() {
             let icx = centerGrid + island.cx;
             let icy = centerGrid + island.cy;
             let r = island.radius;
-            let outerR = r + 2;
+            let outerR = r + 10; // cover noisy edge (noise ±7) + 2-tile shallow border
             for (let ty = Math.max(0, Math.floor(icy - outerR - 1)); ty <= Math.min(gridSize-1, Math.ceil(icy + outerR + 1)); ty++) {
                 for (let tx = Math.max(0, Math.floor(icx - outerR - 1)); tx <= Math.min(gridSize-1, Math.ceil(icx + outerR + 1)); tx++) {
                     if (mapData[ty][tx].status !== -7) continue;
